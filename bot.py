@@ -27,10 +27,10 @@ async def start_handler(client, message):
     await db.add_user(user.id, user.first_name, user.username)
     await message.reply_text(
         f"**Namaste {user.mention}!** 🙏\n"
-        f"Main Raj ka Personal Assistant hu.\n\n"
-        f"🤖 **Mujhse baat kaise karein?**\n"
-        f"Agar kuch puchna hai to **'Dev'** laga kar pucho.\n"
-        f"Example: _'Dev India ka PM kaun hai?'_"
+        f"Main Raj ka Personal AI Assistant hu (Dev).\n\n"
+        f"🧠 **Smart Feature:**\n"
+        f"Agar mujhe jawab pata hai, to main turant bata dunga.\n"
+        f"Agar nahi pata, to **'Dev'** laga kar pucho taaki main seekh lu."
     )
 
 @app.on_message(filters.command("image"))
@@ -54,21 +54,19 @@ async def broadcast_handler(client, message):
     sent, failed = await broadcast_message(client, message.reply_to_message)
     await msg.edit_text(f"✅ Ho gaya\nSent: {sent}\nFailed: {failed}")
 
-# --- MAIN CHAT LOGIC ---
+# --- MAIN LOGIC (THE BRAIN) ---
 
 @app.on_message(filters.text & filters.private)
 async def text_handler(client, message):
     user_id = message.from_user.id
     text = message.text.strip()
-    text_lower = text.lower() # Chota bada letter handle karne ke liye
+    text_lower = text.lower()
     user_mention = message.from_user.mention
 
-    # 1. SECURITY CHECK (✅ NO SLASH REQUIRED)
-    # Sirf "raj" likhne par trigger hoga (bina / ke)
+    # 1. SECURITY CHECK (Password: Raj)
     if text_lower == "raj" and not Security.is_waiting(user_id):
         return await message.reply(Security.initiate_auth(user_id))
     
-    # Password Validation
     if Security.is_waiting(user_id):
         success, response, photo_url = await Security.check_password(user_id, text)
         if photo_url:
@@ -76,20 +74,28 @@ async def text_handler(client, message):
         else:
             return await message.reply(response)
 
-    # 2. JSON CHECK (Fast Greetings)
-    # Bina "Dev" ke bhi jawab dega agar Hi/Hello hai
+    # 2. JSON GREETINGS (Hi/Hello - Fast Reply)
     json_reply = ai_engine.get_json_reply(text)
-    
     if json_reply:
-        await asyncio.sleep(1) # Natural pause
+        await asyncio.sleep(0.5)
         await message.reply_text(f"{json_reply} {user_mention}")
         return
 
-    # 3. AI CHECK (Wake Word: "Dev")
-    # "Dev" hoga tabhi Gemini 2.5 Flash chalega
+    # 3. DATABASE MEMORY CHECK (No "Dev" Needed)
+    # Agar sawal pehle pucha gaya hai, to turant jawab do
+    cached_ans = await db.get_cached_response(text)
+    
+    if cached_ans:
+        # User ko feel karane ke liye ki humne yaad rakha hai
+        await message.reply_text(f"{cached_ans}\n\n(Saved Memory 🧠)")
+        return
+
+    # 4. AI CHECK (Wake Word: "Dev" Needed)
+    # Agar database mein nahi mila, to tabhi jawab do jab "Dev" bola ho
     if "dev" in text_lower:
         await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
         
+        # Thoda delay taaki real lage
         if Config.SMART_DELAY > 0:
             await asyncio.sleep(Config.SMART_DELAY)
             
@@ -98,11 +104,11 @@ async def text_handler(client, message):
         if ai_response:
             await message.reply_text(f"{ai_response}\n\n~ {user_mention}")
         else:
-            # Agar error aaya (jo ab nahi aana chahiye 2.5 ke saath)
-            await message.reply_text(f"I am busy boss, thodi der baad aana. {user_mention}")
+            await message.reply_text(f"Abhi busy hu. {user_mention}")
     
-    # 4. IGNORE EVERYTHING ELSE
-    # Agar na Raj bola, na Hi bola, na Dev bola -> Bot kuch nahi karega.
+    # 5. IGNORE (Agar na DB mein hai, na Dev bola)
+    else:
+        pass
 
 @app.on_message(filters.voice)
 async def voice_handler(client, message):
@@ -120,7 +126,7 @@ async def main():
     except:
         pass
     
-    logger.info("🚀 Raj Bot (Gemini 2.5) Start Ho Raha Hai...")
+    logger.info("🚀 Raj Bot (Smart Memory) Start Ho Raha Hai...")
     await app.start()
     await idle()
     await app.stop()
