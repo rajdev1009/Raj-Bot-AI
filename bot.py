@@ -6,10 +6,11 @@ from config import Config
 from database.mongo import db
 from core.ai_engine import ai_engine
 from core.voice_engine import voice_engine
+from core.image_engine import image_engine  # Added Import
 from core.broadcast import broadcast_message
 from core.security import Security
 from utils.logger import logger
-from utils.server import start_server  # <--- Import the server
+from utils.server import start_server
 
 # Initialize Bot
 app = Client(
@@ -27,8 +28,8 @@ async def start_handler(client, message):
     await db.add_user(user.id, user.first_name, user.username)
     await message.reply_text(
         f"**Hello {user.first_name}! I am Raj.** 🤖\n"
-        f"System: Online 🟢\nServer: Lumding, Assam\n"
-        f"Try: /image or talk to me."
+        f"System: Online 🟢\nLocation: Lumding, Assam\n"
+        f"Try: /image or just talk to me."
     )
 
 @app.on_message(filters.command("broadcast") & filters.user(Config.ADMIN_ID) & filters.reply)
@@ -41,10 +42,19 @@ async def broadcast_handler(client, message):
 async def image_gen_handler(client, message):
     if len(message.command) < 2:
         return await message.reply("Usage: /image <prompt>")
+    
     prompt = message.text.split(None, 1)[1]
     msg = await message.reply("🎨 Generating...")
-    image_url = f"https://image.pollinations.ai/prompt/{prompt.replace(' ', '%20')}"
-    await message.reply_photo(photo=image_url, caption=f"Generated: {prompt}")
+    
+    # Using the new Image Engine
+    image_url = await image_engine.generate_image_url(prompt)
+    
+    if image_url:
+        await message.reply_photo(photo=image_url, caption=f"Generated: {prompt}")
+        await db.log_event("image_logs", {"user_id": message.from_user.id, "prompt": prompt})
+    else:
+        await message.reply("❌ Error creating image. Try again.")
+    
     await msg.delete()
 
 @app.on_message(filters.text & filters.private)
@@ -62,6 +72,7 @@ async def text_handler(client, message):
 
     # 2. AI Response
     await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+    
     if Config.SMART_DELAY > 0:
         await asyncio.sleep(Config.SMART_DELAY) # Human-like delay
         
@@ -72,8 +83,11 @@ async def text_handler(client, message):
 async def voice_handler(client, message):
     msg = await message.reply("🎤 Processing Voice...")
     file_path = await message.download()
+    
+    # Process Voice
     text_response = await voice_engine.voice_to_text_and_reply(file_path)
     await msg.edit_text(f"🤖: {text_response}")
+    
     # Cleanup
     if os.path.exists(file_path): os.remove(file_path)
 
@@ -81,7 +95,10 @@ async def voice_handler(client, message):
 
 async def main():
     # 1. Start Web Server (For 24/7 Keep Alive)
-    await start_server()
+    try:
+        await start_server()
+    except Exception as e:
+        logger.warning(f"Server Error (Ignorable locally): {e}")
     
     # 2. Start Bot Client
     logger.info("🚀 Starting Telegram Client...")
@@ -90,7 +107,7 @@ async def main():
     # 3. Notify Admin
     try:
         if Config.ADMIN_ID:
-            await app.send_message(Config.ADMIN_ID, "✅ **Raj Bot is Online & Connected to MongoDB**")
+            await app.send_message(Config.ADMIN_ID, "✅ **Raj Bot is Online**")
     except:
         pass
 
