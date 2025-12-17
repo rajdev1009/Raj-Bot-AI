@@ -26,23 +26,18 @@ async def log_conversation(client, message, bot_reply):
     try:
         user = message.from_user
         chat_text = message.text or "[Media/Sticker]"
-        
         logger.info(f"📩 User: {user.first_name} | Msg: {chat_text}")
         logger.info(f"📤 Bot: {bot_reply[:50]}...")
-
         if Config.LOG_CHANNEL_ID:
             log_text = (
-                f"**#New_Chat_Log** 📝\n\n"
+                f"**#New_Chat_Log** 📝\n"
                 f"👤 **User:** {user.mention} (`{user.id}`)\n"
-                f"📥 **Message:**\n{chat_text}\n\n"
+                f"📥 **Message:**\n{chat_text}\n"
                 f"🤖 **Bot Reply:**\n{bot_reply}"
             )
-            try:
-                await client.send_message(Config.LOG_CHANNEL_ID, log_text)
-            except:
-                pass # Fail hone par bot na ruke
-    except:
-        pass
+            try: await client.send_message(Config.LOG_CHANNEL_ID, log_text)
+            except: pass
+    except: pass
 
 # --- COMMANDS (Ye sabse upar rahenge) ---
 
@@ -56,14 +51,14 @@ async def start_handler(client, message):
             f"Main Raj ka Personal Assistant hu (Dev).\n\n"
             f"Agar jawab pata hoga to turant dunga, nahi to **'Dev'** laga kar puchna."
         )
-    except Exception as e:
-        logger.error(f"Start Error: {e}")
+    except: pass
 
-@app.on_message(filters.command("image"))
+# ✅ COMMAND CHANGE: /img aur /image dono chalenge
+@app.on_message(filters.command(["image", "img"]))
 async def image_gen_handler(client, message):
     try:
         if len(message.command) < 2:
-            return await message.reply("Likho: /image <kya chahiye>")
+            return await message.reply("Likho: /img <kya chahiye>")
         
         prompt = message.text.split(None, 1)[1]
         msg = await message.reply("🎨 Painting bana raha hu...")
@@ -89,9 +84,10 @@ async def broadcast_handler(client, message):
 
 # --- MAIN CHAT LOGIC ---
 
-# ✅ MAGIC FIX: Is line ka matlab hai:
-# "Agar message '/' se shuru ho raha hai, to usse IGNORE karo (Text handler mat chalao)"
-@app.on_message(filters.text & filters.private & ~filters.regex(r"^/"))
+# ✅ FINAL MAGIC FIX:
+# Iska matlab: "Agar message COMMAND NAHI HAI, tabhi Text Handler chalao."
+# Ab /img, /start sab chalenge, aur normal text alag chalega.
+@app.on_message(filters.text & filters.private & ~filters.command(["start", "image", "img", "broadcast"]))
 async def text_handler(client, message):
     user_id = message.from_user.id
     text = message.text.strip()
@@ -147,9 +143,7 @@ async def text_handler(client, message):
 async def speak_callback_handler(client, callback_query: CallbackQuery):
     await callback_query.answer("🔊 Audio...", show_alert=False)
     text_to_speak = callback_query.message.text or callback_query.message.caption
-    
     if not text_to_speak: return
-    
     try:
         audio_path = await voice_engine.text_to_speech(text_to_speak)
         if audio_path:
@@ -172,8 +166,11 @@ async def voice_handler(client, message):
 async def main():
     try: await start_server()
     except: pass
-    logger.info("🚀 Raj Bot (Fixed) Starting...")
+    logger.info("🚀 Raj Bot (All Fixed) Starting...")
     await app.start()
+    if Config.LOG_CHANNEL_ID:
+        try: await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Online & Ready!**")
+        except: pass
     await idle()
     await app.stop()
 
