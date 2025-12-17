@@ -8,26 +8,37 @@ class VoiceEngine:
     
     @staticmethod
     async def text_to_speech(text, output_file="response.mp3"):
-        """Generates voice from text."""
-        communicate = edge_tts.Communicate(text, "en-US-ChristopherNeural")
-        await communicate.save(output_file)
-        return output_file
+        """Generates voice from text using Edge TTS (Latest)."""
+        try:
+            # Voice: English Male (Christopher) - Ye sabse stable hai
+            voice = "en-US-ChristopherNeural"
+            
+            # Agar Hindi detect ho to Hindi voice use kar sakte hain
+            # Filhal universal voice rakhte hain
+            
+            communicate = edge_tts.Communicate(text, voice)
+            await communicate.save(output_file)
+            return output_file
+        except Exception as e:
+            logger.error(f"TTS Generation Error: {e}")
+            return None
 
     @staticmethod
     async def voice_to_text_and_reply(voice_path):
-        """Uses Gemini Multimodal to listen to audio and reply."""
+        """Uses Gemini 2.5 Flash to listen and reply."""
         try:
-            # Upload to Gemini
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            # Upload Audio
             myfile = genai.upload_file(voice_path)
             
-            # Prompt Gemini to listen and reply
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Prompt
             result = await model.generate_content_async(
-                [myfile, "Listen to this audio, understand it, and reply in text."]
+                [myfile, "Listen to this audio and reply in Hinglish as 'Dev'."]
             )
             return result.text
         except Exception as e:
-            logger.error(f"Voice Error: {e}")
-            return "Sorry, I couldn't hear that clearly."
+            logger.error(f"STT Error: {e}")
+            return "Awaz saaf nahi aayi boss."
 
 voice_engine = VoiceEngine()
