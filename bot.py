@@ -27,7 +27,7 @@ async def start_handler(client, message):
     await db.add_user(user.id, user.first_name, user.username)
     await message.reply_text(
         f"**Namaste {user.mention}!** 🙏\n"
-        f"Main Raj ka Personal AI Assistant hu (Gemini 2.5 Powered).\n\n"
+        f"Main Raj ka Personal Assistant hu.\n\n"
         f"🤖 **Mujhse baat kaise karein?**\n"
         f"Agar kuch puchna hai to **'Dev'** laga kar pucho.\n"
         f"Example: _'Dev India ka PM kaun hai?'_"
@@ -99,7 +99,7 @@ async def text_handler(client, message):
             await message.reply_text(f"{ai_response}\n\n~ {user_mention}")
         else:
             # Agar error aaya (jo ab nahi aana chahiye 2.5 ke saath)
-            await message.reply_text(f"Server busy hai boss, thodi der baad aana. {user_mention}")
+            await message.reply_text(f"I am busy boss, thodi der baad aana. {user_mention}")
     
     # 4. IGNORE EVERYTHING ELSE
     # Agar na Raj bola, na Hi bola, na Dev bola -> Bot kuch nahi karega.
