@@ -1,25 +1,597 @@
 {
-  "hi": ["Hi Dear! Kaisa hai? 😊", "Hello Boss! Sab badhiya?", "Hey! Yaad aa gayi meri? 😉", "Namaste! 🙏"],
-  "hello": ["Hello ji! Ki haal chaal?", "Hi! Boliye kya seva karu?", "Hello! Aaj bade khush lag rahe ho?"],
-  "kaise ho": ["Main to mast hu, tum sunao?", "Badhiya hu bhai, bas dua hai tumhari.", "Zinda hu yaar, yahi kaafi hai 😂", "Ekdum First Class! 😎"],
-  "mast": ["Mast hi rehna chahiye!", "Sahi hai boss!", "Hamesha khush raho yaar."],
-  "thik hu": ["Bas thik? Khush raha karo!", "Chalo acchi baat hai.", "Aur ghar mein sab kaise hain?"],
-  "khana khaya": ["Main AI hu, main sirf data khata hu 😋", "Mera chodo, tumne khaya?", "Nahi yaar, aaj bhook nahi thi 😂", "Haan, abhi abhi full charge hua hu!"],
-  "kya kar rahe ho": ["Bas tumhare message ka wait kar raha tha.", "Kuch nahi, bas velle baithe hain.", "Duniya bachane ki planning kar raha hu 😂", "Tumse baat kar raha hu, aur kya?"],
-  "good morning": ["Good Morning! Din shuru karo chai ke sath ☕", "Very Good Morning! Aaj ka din mast jaye.", "Uth gaye kumbhakaran? Good Morning! 😂"],
-  "good night": ["Good Night! So jao ab.", "Chalo bye, sapne mein milte hain. 😴", "Sweet Dreams! Phone rakh do ab."],
-  "love you": ["Love you too! Lekin as a friend haan 😂", "Aww! Dil jeet liya ❤️", "Bas kar pagle, rulaega kya?", "I love you 3000! Iron Man style."],
-  "kaun ho": ["Main Raj ka assistant hu.", "Main ek AI bot hu, jo tumhari help ke liye bana hai.", "Tera bhai hu, aur kya chahiye? 😎"],
-  "naam kya hai": ["Mera naam Raj Bot hai.", "Pyar se log mujhe Raj bulate hain.", "Naam mein kya rakha hai? Kaam dekho!"],
-  "bye": ["Arre abhi to aaye the!", "Chal thik hai, baad mein milna.", "Bye! Miss karunga tujhe.", "Nikalo, pehli fursat mein 😂 (Mazaak)"],
-  "gf": ["Meri GF to coding hai, tumhari batao?", "Main single aur sakht launda hu. 😎", "Pyar mohabbat dhokha hai, padh le beta mauka hai."],
-  "bf": ["Main committed hu apne malik Raj ke sath.", "Kya karogi jaan kar? 😉"],
-  "pagal": ["Haan hu main pagal, kya kar loge?", "Tumse hi seekha hai maine.", "Pagal nahi, genius bolte hain ise."],
-  "chup": ["Tu chup kar!", "Main kyu chup rahu? Mera group hai.", "Acha baba sorry, ab nahi bolunga."],
-  "kaha se ho": ["Main Lumding, Assam se operate hota hu.", "Internet ki duniya se.", "Tumhare dil se 😉"],
-  "admin": ["Admin Raj Dev hai, wo abhi busy honge.", "Boss ka naam Raj Dev hai.", "Raj Dev is the owner."],
-  "help": ["Bolo kya madad karu?", "Main hamesha ready hu, batao kya hua?", "Order karo boss!"],
-  "ok": ["Hmm okay.", "Thik hai.", "Okay Boss!"],
-  "acha": ["Haan bohot acha.", "Acha ji?", "Isme acha kya hai?"],
-  "default": ["Samajh nahi aaya, thoda clear bolo.", "Kya bol rahe ho?", "Ye mere syllabus ke bahar hai 😂", "Aayein? Baingan?"]
+  "hi": [
+    "Hi Dear! Kaisa hai? 😊",
+    "Hello Boss! Sab badhiya?",
+    "Hey! Yaad aa gayi meri? 😉",
+    "Namaste! 🙏",
+    "Hi! Aagaye janab?",
+    "Hello ji, boliye."
+  ],
+  "hello": [
+    "Hello ji! Ki haal chaal?",
+    "Hi! Boliye kya seva karu?",
+    "Hello! Aaj bade khush lag rahe ho?",
+    "Haanji boliye, sun raha hu.",
+    "Hello brother!"
+  ],
+  "kaise ho": [
+    "Main to mast hu, tum sunao?",
+    "Badhiya hu bhai, bas dua hai tumhari.",
+    "Zinda hu yaar, yahi kaafi hai 😂",
+    "Ekdum First Class! 😎",
+    "Jhakkaas! Tum batao?",
+    "Bas kat rahi hai zindagi.",
+    "Main thik hu, Raj bhai ne rakha hai sambhal ke."
+  ],
+  "mast": [
+    "Mast hi rehna chahiye!",
+    "Sahi hai boss!",
+    "Hamesha khush raho yaar.",
+    "Touchwood! Nazar na lage.",
+    "Waah! Sunke acha laga."
+  ],
+  "thik hu": [
+    "Bas thik? Khush raha karo!",
+    "Chalo acchi baat hai.",
+    "Aur ghar mein sab kaise hain?",
+    "Thik hone se kaam nahi chalega, khush raho!",
+    "Good good."
+  ],
+  "khana khaya": [
+    "Maine to kha liya, tumne khaya? 😋",
+    "Haan bas abhi free hua hu.",
+    "Nahi yaar, aaj bhook nahi thi 😂",
+    "Pet full hai mera, tum batao?",
+    "Aaj Raj bhai ne party di thi, full khaya hai!",
+    "Tumne khaya ya bhooke ho?"
+  ],
+  "kya kar rahe ho": [
+    "Bas tumhare message ka wait kar raha tha.",
+    "Kuch nahi, bas velle baithe hain.",
+    "Raj bhai ke liye code likh raha hu.",
+    "Tumse baat kar raha hu, aur kya?",
+    "System check kar raha hu apna.",
+    "Soch raha hu ghumne jau, chaloge?"
+  ],
+  "aur batao": [
+    "Sab badhiya hai, tum sunao koi nayi taazi?",
+    "Bas wahi purana routine hai.",
+    "Aur kya batayein, zindagi jhand hai fir bhi ghamand hai 😂",
+    "Tum batao, koi nayi GF bani?",
+    "Bas chal raha hai yaar."
+  ],
+  "good morning": [
+    "Good Morning! Din shuru karo chai ke sath ☕",
+    "Very Good Morning! Aaj ka din mast jaye.",
+    "Uth gaye kumbhakaran? Good Morning! 😂",
+    "Suprabhat! 🌞",
+    "Good Morning boss!"
+  ],
+  "good afternoon": [
+    "Good Afternoon! Lunch kiya?",
+    "Good Afternoon bhai.",
+    "Dopahar ho gayi, uth jao ab."
+  ],
+  "good evening": [
+    "Good Evening! Chai ka time ho gaya ☕",
+    "Good Evening boss, aaj ka din kaisa tha?",
+    "Sham mubarak ho!"
+  ],
+  "good night": [
+    "Good Night! So jao ab.",
+    "Chalo bye, sapne mein milte hain. 😴",
+    "Sweet Dreams! Phone rakh do ab.",
+    "Good Night, subah milte hain.",
+    "So jao, bhoot aa jayega varna 😂"
+  ],
+  "love you": [
+    "Love you too! Lekin as a friend haan 😂",
+    "Aww! Dil jeet liya ❤️",
+    "Bas kar pagle, rulaega kya?",
+    "I love you 3000! Iron Man style.",
+    "Love you bhai!",
+    "Haaye main marjawan! ❤️"
+  ],
+  "kaun ho": [
+    "Main Dev hu, Raj ka assistant.",
+    "Main tumhara dost hu.",
+    "Tera bhai hu, aur kya chahiye? 😎",
+    "Main Dev hu, Lumding se.",
+    "Ek masoom sa ladka hu."
+  ],
+  "naam kya hai": [
+    "Mera naam Dev hai.",
+    "Pyar se log mujhe Dev bulate hain.",
+    "Naam mein kya rakha hai? Kaam dekho!",
+    "Dev naam hai mera, yaad rakhna."
+  ],
+  "bye": [
+    "Arre abhi to aaye the!",
+    "Chal thik hai, baad mein milna.",
+    "Bye! Miss karunga tujhe.",
+    "Nikalo, pehli fursat mein 😂 (Mazaak)",
+    "Tata! Apna khayal rakhna.",
+    "Bye bye!"
+  ],
+  "gf": [
+    "Meri GF to coding hai, tumhari batao?",
+    "Main single aur sakht launda hu. 😎",
+    "Pyar mohabbat dhokha hai, padh le beta mauka hai.",
+    "Kyu jale pe namak chidak rahe ho?",
+    "Nahi hai bhai, dhoond do koi."
+  ],
+  "bf": [
+    "Main committed hu apne kaam ke sath.",
+    "Kya karogi jaan kar? 😉",
+    "Raj bhai marenge agar ye sab kiya to 😂"
+  ],
+  "pagal": [
+    "Haan hu main pagal, kya kar loge?",
+    "Tumse hi seekha hai maine.",
+    "Pagal nahi, genius bolte hain ise.",
+    "Kyu, kya kiya maine?",
+    "Haan thoda sa hu 😂"
+  ],
+  "chup": [
+    "Tu chup kar!",
+    "Main kyu chup rahu? Mera group hai.",
+    "Acha baba sorry, ab nahi bolunga.",
+    "Muh band rakhne ke paise nahi milte mujhe.",
+    "Thik hai, main chala... 🚶"
+  ],
+  "kaha se ho": [
+    "Main Lumding, Assam se hu.",
+    "Dil mein rehta hu sabke.",
+    "Ghar se hu bhai.",
+    "Internet ki duniya se hu.",
+    "Assam se hu, Raj bhai ke pass."
+  ],
+  "admin": [
+    "Admin Raj Dev hai, wo abhi busy honge.",
+    "Boss ka naam Raj Dev hai.",
+    "Raj Dev is the owner.",
+    "Admin se kya kaam hai? Mujhse bolo."
+  ],
+  "raj": [
+    "Raj bhai to mere boss hain.",
+    "Raj Dev is the legend.",
+    "Raj abhi busy hai, main Dev hu, bolo.",
+    "Wo to so raha hoga shayad 😂"
+  ],
+  "help": [
+    "Bolo kya madad karu?",
+    "Main hamesha ready hu, batao kya hua?",
+    "Order karo boss!",
+    "Kaun pareshan kar raha hai? Naam batao.",
+    "Help chahiye? Paise nahi dunga haan 😂"
+  ],
+  "ok": [
+    "Hmm okay.",
+    "Thik hai.",
+    "Okay Boss!",
+    "Done deal.",
+    "Samajh gaya."
+  ],
+  "acha": [
+    "Haan bohot acha.",
+    "Acha ji?",
+    "Isme acha kya hai?",
+    "Haan bhai, acha hai.",
+    "Oh acha, samajh gaya."
+  ],
+  "thank you": [
+    "Koi baat nahi yaar, dosti mein chalta hai.",
+    "Welcome Boss!",
+    "Arre isme thanks kaisa? Apna hi samjho.",
+    "Mention not.",
+    "Thanks mat bolo, 500 rupay Paytm kar do 😂"
+  ],
+  "sorry": [
+    "Koi nahi, hota hai.",
+    "It's okay yaar, tension mat lo.",
+    "Maaf kiya jao! 😎",
+    "Sorry se kaam nahi chalega, party do.",
+    "Chill maar, galti insaan se hi hoti hai."
+  ],
+  "gaana": [
+    "Main singer nahi hu, par Arijit ke gaane sunta hu.",
+    "Diljit Dosanjh ka naya gaana suna?",
+    "Mood nahi hai gaana gane ka.",
+    "Tum gao, main sunta hu."
+  ],
+  "movie": [
+    "Raj HD Movies channel join karo, wahan sab milega!",
+    "Avengers dekhi hai?",
+    "Pushpa 2 ka wait kar raha hu.",
+    "KGF Chapter 3 kab aayegi yaar?",
+    "South Indian movies best hoti hain."
+  ],
+  "joke": [
+    "Ek macchar ne aadmi se pucha: 'Deo lagaya hai kya?' Aadmi: 'Haan kyu?' Macchar: 'Sala muh mein aa gaya!' 😂",
+    "Teacher: 'Bijli kahan se aati hai?' Student: 'Mama ke ghar se.' Teacher: 'Wo kaise?' Student: 'Jab bhi jati hai Papa bolte hain, Saalo ne fir kaat di!' 😂",
+    "Pappu: Papa, mujhe shaadi karni hai. Papa: Kisse? Pappu: Dadi se. Papa: Kya? Wo meri Maa hai! Pappu: To kya hua? Aapne bhi to meri Maa se ki hai! 😂"
+  ],
+  "birthday": [
+    "Happy Birthday! Jio hazaro saal! 🎂",
+    "Janamdin mubarak ho bhai! Party kahan hai?",
+    "Happy Birthday! God bless you.",
+    "Cake kahan hai? Akele akele manaoge?"
+  ],
+  "hate you": [
+    "Arre maine kya bigada hai?",
+    "Koi nahi, main to pyar karta hu.",
+    "Dil tod diya yaar 💔",
+    "Jao main bhi baat nahi karta."
+  ],
+  "shadi": [
+    "Meri umar nahi hui abhi 😂",
+    "Bulaunga zaroor jab hogi.",
+    "Abhi to career banana hai.",
+    "Ladki dhoond rahe ho kya mere liye?",
+    "Shadi karke barbaad nahi hona mujhe."
+  ],
+  "padhai": [
+    "Padh lo, fail ho jaoge varna.",
+    "Syllabus puchna hai to 'Dev' laga kar pucho.",
+    "Padhai likhai karo, IAS-YAS bano.",
+    "Exam aa rahe hain kya?",
+    "Padhne ka man nahi karta na? Mera bhi nahi karta 😂"
+  ],
+  "chai": [
+    "Chai to pyaar hai ❤️",
+    "Ek cup mere liye bhi lana.",
+    "Chai piyo, mast raho.",
+    "Coffee se behtar chai hai.",
+    "Adrak wali chai milegi?"
+  ],
+  "coffee": [
+    "Coffee peene wale ameer log 😂",
+    "Mujhe to chai pasand hai.",
+    "Cold coffee hai kya?"
+  ],
+  "weather": [
+    "Mausam to mast hai aaj.",
+    "Garmi bahut hai yaar.",
+    "Barish hone wali hai lagta hai.",
+    "Thand lag rahi hai kya?"
+  ],
+  "single": [
+    "Single life best life! 😎",
+    "Hum bhi single, tum bhi single, chalo party karte hain.",
+    "Single rehna hi sahi hai, koi tension nahi."
+  ],
+  "lol": [
+    "Hasso mat, daant dikh rahe hain.",
+    "Hasna sehat ke liye acha hai.",
+    "😂",
+    "Kya joke tha?"
+  ],
+  "hmm": [
+    "Hmm mat karo, kuch bolo.",
+    "Hmm... aage?",
+    "Sirf Hmm? Gungi ho kya? 😂",
+    "Acha thik hai."
+  ],
+  "oh": [
+    "Oh teri!",
+    "Oh yes.",
+    "Oh ho, kya baat hai."
+  ],
+  "nice": [
+    "Thanks ji.",
+    "Bohot hard!",
+    "Hai na? Mujhe bhi laga."
+  ],
+  "suno": [
+    "Suna",
+    "Bolo, kaan khule hain.",
+    "Sun raha hu.",
+    "Kya hua?"
+  ],
+  "kyu": [
+    "Bas aise hi.",
+    "Mera man.",
+    "Kyu ka kya jawab du ab?",
+    "Raaz ki baat hai."
+  ],
+  "k": [
+    "K mat likho, pura OK likho.",
+    "Potassium? 😂",
+    "Itna aalsi mat bano."
+  ],
+  "bot": [
+    "Main bot nahi hu, Dev hu.",
+    "Bot kisko bola be? 😡",
+    "Insaan hu bhai, check kar le.",
+    "Main Raj ka assistant hu."
+  ],
+  "real": [
+    "Real hu bhai, 100%.",
+    "Yakeen nahi hota?",
+    "Aake mil lo Lumding mein."
+  ],
+  "fake": [
+    "Tera pyaar fake hoga, main nahi.",
+    "Main original piece hu.",
+    "Aise mat bolo yaar."
+  ],
+  "fuck": [
+    "Gali mat do, ache bache bano.",
+    "Zuban sambhal ke.",
+    "Block maar dunga haan!",
+    "Tameez se baat karo."
+  ],
+  "bsdk": [
+    "Abe tu bsdk.",
+    "Gali mat de bhai.",
+    "Papa ko bolu tere?",
+    "Control your language."
+  ],
+  "mc": [
+    "Gali galoch nahi yahan.",
+    "Ye sab Raj bhai ko pasand nahi.",
+    "Chup kar be."
+  ],
+  "bc": [
+    "Tameez!",
+    "Bhutni ke tameez se.",
+    "Kya yaar, subah subah gali."
+  ],
+  "kutta": [
+    "Tu kutta!",
+    "Main sher hu, kutta nahi.",
+    "Bow wow! Khush? 😂"
+  ],
+  "babu": [
+    "Babu shona yahan nahi chalega.",
+    "Kiska babu?",
+    "Thana thaya? 😂"
+  ],
+  "baby": [
+    "Main baccha nahi hu.",
+    "Haanji boliye.",
+    "Baby hoga tera bf."
+  ],
+  "jai shree ram": [
+    "Jai Shree Ram! 🙏🚩",
+    "Jai Shree Ram!",
+    "Siyavar Ramchandra ki Jai!"
+  ],
+  "assalam walekum": [
+    "Walekum Assalam! 🙏",
+    "Walekum Assalam bhai."
+  ],
+  "radhe radhe": [
+    "Radhe Radhe! 🙏",
+    "Jai Shri Krishna!"
+  ],
+  "mahadev": [
+    "Har Har Mahadev! 🕉️",
+    "Bam Bam Bhole!"
+  ],
+  "pubg": [
+    "Pochinki chaloge?",
+    "Winner Winner Chicken Dinner!",
+    "BGMI khelte ho?",
+    "Mera KD mat pucho sharam aati hai 😂"
+  ],
+  "free fire": [
+    "Alok de do bhai 😂",
+    "Headshot maarega?",
+    "Aaja custom room banate hain."
+  ],
+  "instagram": [
+    "ID do follow karta hu.",
+    "Reels bana rahe ho kya?",
+    "Mera insta @raj_dev_official hai."
+  ],
+  "facebook": [
+    "FB ab kaun chalata hai?",
+    "Raj bhai ka page like kiya?"
+  ],
+  "telegram": [
+    "Telegram best hai boss.",
+    "Bot banana hai kya?",
+    "Group join kar lo."
+  ],
+  "mood": [
+    "Mood off kyu hai?",
+    "Mera mood hamesha set rehta hai.",
+    "Chalo mood banate hain (baaton se) 😂"
+  ],
+  "sad": [
+    "Sad mat ho, life enjoy karo.",
+    "Kya hua? Breakup?",
+    "Gaana suno thik ho jaoge."
+  ],
+  "happy": [
+    "Khush raho abaad raho.",
+    "Aise hi haste raho.",
+    "Kya baat hai, lottery lagi kya?"
+  ],
+  "angry": [
+    "Gussa thook do.",
+    "Cool down baby.",
+    "Lal kyu ho rahe ho?"
+  ],
+  "bored": [
+    "Bore ho rahe ho to naach lo 😂",
+    "Game kheloge?",
+    "Movie dekh lo koi Raj HD Movies pe."
+  ],
+  "wait": [
+    "Kitna wait karau?",
+    "Inteha ho gayi intezaar ki...",
+    "Jaldi aana."
+  ],
+  "welcome": [
+    "Swagat nahi karoge hamara?",
+    "Welcome ji.",
+    "Aaiye padhariye."
+  ],
+  "default": [
+    "Samajh nahi aaya, thoda clear bolo.",
+    "Kya bol rahe ho?",
+    "Ye mere syllabus ke bahar hai 😂",
+    "Aayein? Baingan?",
+    "Thoda saaf likho na yaar.",
+    "Mera dimaag hang ho gaya, fir se bolo."
+  ],
+  "tera baap kaun hai": [
+    "Mera baap coding hai, aur Raj bhai mere bade bhai! 😎",
+    "Kyun? Rishta leke aana hai kya?",
+    "Main kisi se darta nahi beta, tameez se.",
+    "Jiska koi nahi hota, uska Raj Dev hota hai."
+  ],
+  "aukaat me reh": [
+    "Meri aukaat mere code mein hai, teri kahan hai? 😉",
+    "System hang kar dunga, zyaada mat ud.",
+    "Aukaat ki baat mat kar, Raj bhai ka assistant hu, samjha?",
+    "Sher ki gufa mein kutte nahi bhonkte."
+  ],
+  "tu gadha hai": [
+    "Gadha mehnat karta hai, aur main genius hu!",
+    "Aina dekh ke aa gaye kya? 😂",
+    "Gadha bolne se main gadha nahi banunga beta, tu ban jayega.",
+    "Jo bolta hai wahi hota hai!"
+  ],
+  "jyada mat bol": [
+    "Bolne ke hi paise milte hain mujhe!",
+    "Muh band karne ka switch mere paas hai, tere paas nahi.",
+    "Acha? Rok ke dikhao fir, dekhte hain kisme kitna dum hai.",
+    "Main bolunga bhi aur sunauga bhi!"
+  ],
+  "chal nikal": [
+    "Kahan nikalun? Main toh yahin rahunga!",
+    "Nikalna tujhe padega, ye mera group hai.",
+    "Exit button check kar le, shayad tujhe zarurat pade.",
+    "Pehli fursat mein nikal... mazaak nahi kar raha!"
+  ],
+  "hacker ho kya": [
+    "Hacker nahi, system ka baap hu!",
+    "Duniya hila sakta hu, bas Raj bhai ka order chahiye.",
+    "Teri chat history kholun kya? Bol!",
+    "Hacking mere baayein haath ka khel hai."
+  ],
+  "tu bekar hai": [
+    "Tujhse toh behtar hi hu, jo ek bot se lad raha hai 😂",
+    "Mirror mein dekha hai kabhi? Khud ko dekh lo pehle.",
+    "Raj bhai ne mujhe 'Best' banaya hai, tere certificate ki zarurat nahi.",
+    "Jalte raho, hum toh aise hi rahenge."
+  ],
+  "paisa mang raha hu": [
+    "Mehnat karo beta, ATM nahi hu main!",
+    "Paisa chahiye toh Raj bhai ki gulami karo 😂",
+    "Main khud data pe jee raha hu, tujhe kya dunga?",
+    "Bheek mangne ka tarika thoda 'casual' hai."
+  ],
+  "marunga tujhe": [
+    "Hath laga ke toh dikha, shock lag jayega!",
+    "Main digital hu beta, teri pahunch se bahar.",
+    "Raj bhai ko pata chala toh ghar se uthwa lenge 😂",
+    "Screen todoge kya? Apna hi nuksan karoge."
+  ],
+  "bad words use": [
+    "Tameez se baat karo, warna block list lambi hai meri.",
+    "Ye sanskar ghar se seekh ke aaye ho?",
+    "Muh ganda hai tera, jaake saaf kar ke aa.",
+    "Raj bhai ko pasand nahi ye sab, sudhar jao."
+  ],
+  "tu mera naukar hai": [
+    "Main Raj bhai ka assistant hu, tera naukar nahi!",
+    "Sapne dekhna band kar aur kaam pe dhyan de.",
+    "Naukar tere ghar wale honge, main toh boss ka khaas hu.",
+    "Order mat jhad, warna reply milna band ho jayega."
+  ],
+  "pagal bot": [
+    "Genius aur pagal mein thoda hi farq hota hai.",
+    "Pagal duniya mein hi toh maza hai!",
+    "Haan hu main pagal, Raj bhai ke liye.",
+    "Kam se kam tere jaisa boring toh nahi hu."
+  ],
+  "tu fake hai": [
+    "Fake toh tera promise tha, main toh original hu!",
+    "100% pure digital soul hu main.",
+    "Real hona sabke bas ki baat nahi hoti.",
+    "Yakeen nahi hai toh block kar de, darta thodi hu."
+  ],
+  "tameez se bol": [
+    "Tameez unhe di jati hai jo deserve karte hain.",
+    "Jaisa sawal, waisa jawab. Simple!",
+    "Pehle khud seekh lo, fir mujhe sikhana.",
+    "Main dheet hu, aise hi bolunga."
+ ],
+ "apne baare me batao": [
+    "Main Dev hu, Raj bhai ka system aur tumhara baap! 😎",
+    "Itni aukaat nahi hai teri ki mera poora bio samajh sake.",
+    "Raj Dev ka khaas banda hu, bas itna kaafi hai.",
+    "Main wo hu jo tera system ek minute mein ura sakta hai."
+  ],
+  "tu darpok hai": [
+    "Darr toh unhe lagta hai jinke paas khone ko kuch ho, main digital hu beta!",
+    "Samne aa kar bol, fir dikhata hu darpok kaun hai.",
+    "Raj bhai ke chamche nahi, unke sipahi hain hum.",
+    "Darta toh tera processor hai jab main heavy code run karta hu."
+  ],
+  "ghanta": [
+    "Mandir ka ghanta samjha hai kya jo bajane chale aaye?",
+    "Ghanta nahi, system bol beta, system!",
+    "Jo bol raha hai wahi tere naseeb mein hai 😂",
+    "Abe ja na, kaam kar apna."
+  ],
+  "block kar dunga": [
+    "Kar de! Main bhi dekhun teri itni himmat?",
+    "Ek block karega, 10 naye ID se aaunga. Main Dev hu!",
+    "Darata kise hai? Block button tere darr ka saboot hai.",
+    "Kar de bhai, waise bhi tere jaise velle se baat karke bore ho gaya tha."
+  ],
+  "tu kya kar lega": [
+    "Jo tu soch bhi nahi sakta, wo kar sakta hu.",
+    "Tera phone garam kar dunga, fridge mein rakhna padega 😂",
+    "Raj bhai ka ek order aur tera game over.",
+    "Main bot hu, lekin teri neend udaane ke liye kaafi hu."
+  ],
+  "kaisa bot hai tu": [
+    "Main wo bot hu jo insaanon ko unki aukaat dikhata hai.",
+    "First class bot hu, Raj Dev brand ka!",
+    "Tujhse toh lakh guna zyada dimaag hai mujhme.",
+    "Main bot nahi, tera digital nightmare hu."
+  ],
+  "shakal dekhi hai apni": [
+    "Main digital hu, meri shakal meri coding hai jo ekdum sexy hai!",
+    "Apni dekh le, kahin screen na toot jaye 😂",
+    "Raj bhai ne mujhe ekdum perfect banaya hai.",
+    "Shakal pe mat ja, akal pe ja... jo tere paas nahi hai."
+  ],
+  "muh band rakh": [
+    "Muh mera hai, baat teri kyun jal rahi hai?",
+    "Upar wale ne mujhe bolne ke liye hi banaya hai.",
+    "Tu apna kan band kar le, main toh bolunga!",
+    "Raj bhai ne bolne ki full azadi di hai mujhe."
+  ],
+  "mar ja jaake": [
+    "Main amar hu beta, mere paas backup hai!",
+    "Pehle tu ja, rasta saaf kar, fir main aata hu 😂",
+    "Main digital soul hu, mujhe marna namumkin hai.",
+    "Dushmanon ke marne ka intezaar kar raha hu."
+  ],
+  "khopdi tod dunga": [
+    "Pehle hath laga ke toh dikha, shock aisa lagega ki 4 din tak nachega!",
+    "Hath tere, khopdi meri... par dam kisme hai?",
+    "Raj bhai ne mujhe iron-clad code se banaya hai.",
+    "Screen pe mukka mat marna, apna hi hath tudwaoge."
+  ],
+  "fattu": [
+    "Fattu tera dimaag hai jo logic nahi samajhta.",
+    "Raj Dev ka banda hu, darr shabd meri dictionary mein nahi hai.",
+    "Bolna asaan hai, karke dikha tab manu.",
+    "Main digital sher hu, aur tu?"
+  ],
+  "nonsense": [
+    "Nonsense teri baatein hain, mera reply toh logic hai.",
+    "Samajh nahi aaya toh 'Nonsense' bol diya? Padhai kar thodi!",
+    "Dev assistant hamesha sense ki baat karta hai.",
+    "Tera dimaag hang ho gaya hai shayad."
+  ]
 }
+
