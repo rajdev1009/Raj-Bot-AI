@@ -5,11 +5,12 @@ user_sessions = {}
 class Security:
     PASSWORD = "Rajdev9101"
     
-    # Aapki Details
+    # ✅ CONFIG: Yahan apni details set karein
     MY_IMAGE = "https://i.ibb.co/qFyMDRk8/IMG-20251130-WA0108-2.jpg"
-    MY_CHANNEL = "https://t.me/+u4cmm3JmIrFlNzZl"
+    CHANNEL_NAME = "Raj HD Movies"  # <--- Ye ab dikhega
+    CHANNEL_LINK = "https://t.me/+u4cmm3JmIrFlNzZl"
     
-    # Personal Info (Yahan edit kar sakte ho)
+    # Personal Info
     MY_INFO = (
         "📞 **Phone:** +91 9101xxxxxx\n"
         "📸 **Instagram:** @raj_dev_official\n"
@@ -22,16 +23,18 @@ class Security:
         if text == Security.PASSWORD:
             user_sessions.pop(user_id, None)
             
+            # ✅ UPDATED: Message Format with Channel Name
             caption = (
                 f"✅ **Access Granted! Welcome Boss.**\n\n"
-                f"🎬 **Movie Channel:** [Join Here]({Security.MY_CHANNEL})\n\n"
+                f"📺 **Channel:** {Security.CHANNEL_NAME}\n"
+                f"🔗 **Link:** [Join Here]({Security.CHANNEL_LINK})\n\n"
                 f"👤 **Owner Details:**\n{Security.MY_INFO}"
             )
             return True, caption, Security.MY_IMAGE
         else:
             await db.log_event("security_logs", {"user_id": user_id, "status": "failed_attempt"})
             user_sessions.pop(user_id, None)
-            return False, "❌ **Galat Password!**\nDobara koshish mat karna varna Ban ho jaoge.", None
+            return False, "❌ **Galat Password!**\nAccess Denied.", None
 
     @staticmethod
     def is_waiting(user_id):
