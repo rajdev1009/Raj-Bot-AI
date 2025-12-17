@@ -10,8 +10,8 @@ class Security:
 
     IMAGES = [
         "https://i.ibb.co/qFyMDRk8/IMG-20251130-WA0108-2.jpg",
-        "IMAGE_LINK_2",
-        "IMAGE_LINK_3"
+        "https://i.ibb.co/wNm5kJn4/1765831046347-2.jpg",
+        "https://i.ibb.co/nqXdCMsG/1762672948749-2.jpg"
     ]
 
     CHANNEL_NAME = "Raj HD Movies"
