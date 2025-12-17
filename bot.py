@@ -59,7 +59,7 @@ async def start_handler(client, message):
     await db.add_user(user.id, user.first_name, user.username)
     await message.reply_text(
         f"**Namaste {user.mention}!** 🙏\n"
-        f"Main Raj ka Personal AI Assistant hu (Dev).\n\n"
+        f"Main Raj ka Personal Assistant hu (Dev).\n\n"
         f"Agar jawab pata hoga to turant dunga, nahi to **'Dev'** laga kar puchna."
     )
 
