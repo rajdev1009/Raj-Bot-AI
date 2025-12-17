@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies for voice processing (ffmpeg)
+# System dependencies (Voice ke liye ffmpeg zaroori hai)
 RUN apt-get update && apt-get install -y ffmpeg
 
 COPY requirements.txt .
