@@ -21,19 +21,17 @@ app = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-# --- HELPER: LOGGING SYSTEM ---
+# --- HELPER: LOGGING SYSTEM (SAFE MODE) ---
 async def log_conversation(client, message, bot_reply):
-    user = message.from_user
-    chat_text = message.text or "[Media/Sticker]"
-    time_now = datetime.now().strftime("%d-%m-%Y %I:%M %p")
-    
-    # Console Log
-    logger.info(f"📩 User: {user.first_name} | Msg: {chat_text}")
-    logger.info(f"📤 Bot: {bot_reply[:50]}...")
+    try:
+        user = message.from_user
+        chat_text = message.text or "[Media/Sticker]"
+        time_now = datetime.now().strftime("%d-%m-%Y %I:%M %p")
+        
+        logger.info(f"📩 User: {user.first_name} | Msg: {chat_text}")
+        logger.info(f"📤 Bot: {bot_reply[:50]}...")
 
-    # Telegram Log Channel
-    if Config.LOG_CHANNEL_ID:
-        try:
+        if Config.LOG_CHANNEL_ID:
             log_text = (
                 f"**#New_Chat_Log** 📝\n\n"
                 f"👤 **User:** {user.mention} (`{user.id}`)\n"
@@ -41,20 +39,70 @@ async def log_conversation(client, message, bot_reply):
                 f"📥 **Message:**\n{chat_text}\n\n"
                 f"🤖 **Bot Reply:**\n{bot_reply}"
             )
-            await client.send_message(Config.LOG_CHANNEL_ID, log_text)
-        except Exception as e:
-            # Ye error tab aata hai jab bot Admin nahi hota
-            logger.error(f"Log Channel Error: {e}")
+            try:
+                await client.send_message(Config.LOG_CHANNEL_ID, log_text)
+            except Exception as e:
+                logger.warning(f"⚠️ Log Channel Error (Ignored): {e}")
+                
+    except Exception as main_e:
+        logger.error(f"Logging System Error: {main_e}")
+
+# --- COMMANDS ---
+
+@app.on_message(filters.command("start"))
+async def start_handler(client, message):
+    try:
+        user = message.from_user
+        # Database mein user add karo
+        await db.add_user(user.id, user.first_name, user.username)
+        
+        await message.reply_text(
+            f"**Namaste {user.mention}!** 🙏\n"
+            f"Main Raj ka Personal Assistant hu (Dev).\n\n"
+            f"Agar jawab pata hoga to turant dunga, nahi to **'Dev'** laga kar puchna."
+        )
+        # Log start command also
+        logger.info(f"Start Command used by {user.first_name}")
+    except Exception as e:
+        logger.error(f"Start Error: {e}")
+
+@app.on_message(filters.command("image"))
+async def image_gen_handler(client, message):
+    if len(message.command) < 2:
+        return await message.reply("Likho: /image <kya chahiye>")
+    
+    prompt = message.text.split(None, 1)[1]
+    msg = await message.reply("🎨 Painting bana raha hu...")
+    
+    try:
+        image_url = await image_engine.generate_image_url(prompt)
+        if image_url:
+            await message.reply_photo(photo=image_url, caption=f"Ye lo: {prompt}")
+            await log_conversation(client, message, f"Image: {prompt}")
+        else:
+            await message.reply("Error aa gaya boss.")
+    except Exception as e:
+        logger.error(f"Image Handler Error: {e}")
+        await message.reply("Kuch gadbad ho gayi.")
+    
+    await msg.delete()
+
+@app.on_message(filters.command("broadcast") & filters.user(Config.ADMIN_ID) & filters.reply)
+async def broadcast_handler(client, message):
+    msg = await message.reply_text("📢 Broadcast shuru...")
+    sent, failed = await broadcast_message(client, message.reply_to_message)
+    await msg.edit_text(f"✅ Ho gaya\nSent: {sent}\nFailed: {failed}")
 
 # --- MAIN CHAT LOGIC ---
 
-@app.on_message(filters.text & filters.private)
+# ✅ FIX IS HERE: Humne "~filters.command" lagaya hai.
+# Iska matlab: "Agar ye koi Command (start/image) hai, to is function ko mat chalao"
+@app.on_message(filters.text & filters.private & ~filters.command(["start", "image", "broadcast"]))
 async def text_handler(client, message):
     user_id = message.from_user.id
     text = message.text.strip()
     text_lower = text.lower()
     
-    # Speaker Button
     speaker_btn = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔊 Suno (Listen)", callback_data="speak_msg")]
     ])
@@ -81,10 +129,9 @@ async def text_handler(client, message):
         await log_conversation(client, message, json_reply)
         return
 
-    # 3. DATABASE MEMORY (TAG REMOVED ✅)
+    # 3. DATABASE MEMORY
     cached_ans = await db.get_cached_response(text)
     if cached_ans:
-        # Yahan se maine "(Saved Memory)" hata diya hai
         await message.reply_text(cached_ans, reply_markup=speaker_btn)
         await log_conversation(client, message, cached_ans)
         return
@@ -105,45 +152,14 @@ async def text_handler(client, message):
             await message.reply_text("Abhi busy hu.")
             await log_conversation(client, message, "AI Failed")
     else:
+        # Ignore logic for random texts without "Dev"
         pass
-
-# --- COMMANDS ---
-@app.on_message(filters.command("start"))
-async def start_handler(client, message):
-    user = message.from_user
-    await db.add_user(user.id, user.first_name, user.username)
-    await message.reply_text(
-        f"**Namaste {user.mention}!** 🙏\n"
-        f"Main Raj ka Personal Assistant hu (Dev).\n\n"
-        f"Agar jawab pata hoga to turant dunga, nahi to **'Dev'** laga kar puchna."
-    )
-
-@app.on_message(filters.command("image"))
-async def image_gen_handler(client, message):
-    if len(message.command) < 2:
-        return await message.reply("Likho: /image <kya chahiye>")
-    prompt = message.text.split(None, 1)[1]
-    msg = await message.reply("🎨 Painting bana raha hu...")
-    image_url = await image_engine.generate_image_url(prompt)
-    if image_url:
-        await message.reply_photo(photo=image_url, caption=f"Ye lo: {prompt}")
-        await log_conversation(client, message, f"Image: {prompt}")
-    else:
-        await message.reply("Error aa gaya boss.")
-    await msg.delete()
-
-@app.on_message(filters.command("broadcast") & filters.user(Config.ADMIN_ID) & filters.reply)
-async def broadcast_handler(client, message):
-    msg = await message.reply_text("📢 Broadcast shuru...")
-    sent, failed = await broadcast_message(client, message.reply_to_message)
-    await msg.edit_text(f"✅ Ho gaya\nSent: {sent}\nFailed: {failed}")
 
 # --- SPEAKER CALLBACK ---
 @app.on_callback_query(filters.regex("speak_msg"))
 async def speak_callback_handler(client, callback_query: CallbackQuery):
     await callback_query.answer("🔊 Audio generate ho raha hai...", show_alert=False)
     
-    # Text nikalo
     text_to_speak = callback_query.message.text or callback_query.message.caption
     
     if not text_to_speak:
@@ -151,7 +167,6 @@ async def speak_callback_handler(client, callback_query: CallbackQuery):
         return
 
     try:
-        # Audio generate karo
         audio_path = await voice_engine.text_to_speech(text_to_speak)
         
         if audio_path:
@@ -185,8 +200,15 @@ async def main():
         await start_server()
     except:
         pass
-    logger.info("🚀 Raj Bot 2.0 Starting...")
+    logger.info("🚀 Raj Bot (Start Fix) Starting...")
     await app.start()
+    
+    if Config.LOG_CHANNEL_ID:
+        try:
+            await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Rebooted & Online**")
+        except Exception as e:
+            logger.warning(f"Startup Log Error: {e} (Check ID or Permissions)")
+
     await idle()
     await app.stop()
 
