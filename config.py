@@ -12,6 +12,11 @@ class Config:
     ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
     PORT = int(os.getenv("PORT", 8080))
     
-    # Specific Configs
-    AI_COOLDOWN = 60  # Seconds
-    SMART_DELAY = 15  # Seconds
+    # AI Settings
+    AI_COOLDOWN = 60
+    SMART_DELAY = 10 
+    
+    # ✅ LOG CHANNEL FIX (Ye line missing thi)
+    # Default 0 rakha hai taaki error na aaye agar ID na mile
+    LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", 0))
+    
