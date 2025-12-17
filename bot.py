@@ -14,6 +14,20 @@ from core.security import Security
 from utils.logger import logger
 from utils.server import start_server
 
+# --- 🎨 STARTUP LOGO (Fixed Structure) ---
+LOGO = r"""
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+▓                                                       ▓
+▓   ██████╗  █████╗      ██████╗ ███████╗██╗   ██╗      ▓
+▓   ██╔══██╗██╔══██╗     ██╔══██╗██╔════╝██║   ██║      ▓
+▓   ██████╔╝███████║     ██║  ██║█████╗  ██║   ██║      ▓
+▓   ██╔══██╗██╔══██║     ██║  ██║██╔══╝  ╚██╗ ██╔╝      ▓
+▓   ██║  ██║██║  ██║     ██████╔╝███████╗ ╚████╔╝       ▓
+▓                                                       ▓
+▓   CORE ACTIVATED | DEVELOPED BY RAJ DEV | 2025        ▓
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+"""
+
 app = Client(
     "RajBot_Session",
     api_id=Config.API_ID,
@@ -22,10 +36,8 @@ app = Client(
 )
 
 # --- 🎚️ GLOBAL SWITCHES (Settings) ---
-# Default: Groups mein Auto-Reply (Hi/Hello) OFF rahega taaki spam na ho.
-# Admin ise /mode command se ON kar sakta hai.
 SETTINGS = {
-    "group_auto_reply": False  # False = Group mein Hi/Hello ignore karega
+    "group_auto_reply": False
 }
 
 # --- HELPER: LOGGING ---
@@ -53,10 +65,6 @@ async def log_conversation(client, message, bot_reply):
 
 @app.on_message(filters.command("mode") & filters.user(Config.ADMIN_ID))
 async def mode_switch_handler(client, message):
-    """
-    Admin Command to Toggle Group Auto-Reply
-    Usage: /mode on  OR  /mode off
-    """
     try:
         if len(message.command) < 2:
             status = "✅ ON" if SETTINGS["group_auto_reply"] else "❌ OFF"
@@ -151,9 +159,7 @@ async def text_handler(client, message):
             await log_conversation(client, message, f"Security: {success}")
             return
 
-    # 2. JSON GREETINGS (On/Off Logic Here)
-    # Rule: Private mein Hamesha chalega.
-    # Rule: Group mein tabhi chalega jab SETTINGS["group_auto_reply"] True ho.
+    # 2. JSON GREETINGS
     should_reply_json = is_private or SETTINGS["group_auto_reply"]
     
     if should_reply_json:
@@ -165,7 +171,6 @@ async def text_handler(client, message):
             return
 
     # 3. DATABASE MEMORY
-    # Group mein bina "Dev" ke jawab sirf tab dega agar setting ON ho.
     should_reply_db = is_private or SETTINGS["group_auto_reply"]
     if should_reply_db:
         cached_ans = await db.get_cached_response(text)
@@ -175,7 +180,6 @@ async def text_handler(client, message):
             return
 
     # 4. AI CHECK (Wake Word: "Dev")
-    # Ye HAMESHA chalega (Group/Private/Off/On sab jagah)
     if "dev" in text_lower:
         await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
         if Config.SMART_DELAY > 0: await asyncio.sleep(Config.SMART_DELAY)
@@ -215,13 +219,19 @@ async def voice_handler(client, message):
 
 # --- STARTUP ---
 async def main():
+    # Logo Print Karega
+    print(LOGO)
+    
     try: await start_server()
     except: pass
-    logger.info("🚀 Raj Bot (With Mode Switch) Starting...")
+    
+    logger.info("🚀 Raj Bot (Logo Fixed) Starting...")
     await app.start()
+    
     if Config.LOG_CHANNEL_ID:
-        try: await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Online: Mode Switch Ready!**")
+        try: await app.send_message(Config.LOG_CHANNEL_ID, f"✅ **Bot Online!**\n\n```\n{LOGO}\n```")
         except: pass
+        
     await idle()
     await app.stop()
 
