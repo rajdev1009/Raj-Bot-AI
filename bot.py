@@ -1,8 +1,8 @@
 import asyncio
 import os
 from datetime import datetime
-from pyrogram import Client, filters, idle
-from pyrogram.enums import ChatAction
+from pyrogram import Client, filters, idle, enums
+from pyrogram.enums import ChatAction, ChatType
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from config import Config
 from database.mongo import db
@@ -26,11 +26,14 @@ async def log_conversation(client, message, bot_reply):
     try:
         user = message.from_user
         chat_text = message.text or "[Media/Sticker]"
-        logger.info(f"📩 User: {user.first_name} | Msg: {chat_text}")
-        logger.info(f"📤 Bot: {bot_reply[:50]}...")
+        chat_type = "Private" if message.chat.type == ChatType.PRIVATE else "Group"
+        
+        logger.info(f"📩 [{chat_type}] {user.first_name}: {chat_text}")
+        
         if Config.LOG_CHANNEL_ID:
             log_text = (
                 f"**#New_Chat_Log** 📝\n"
+                f"SOURCE: {chat_type}\n"
                 f"👤 **User:** {user.mention} (`{user.id}`)\n"
                 f"📥 **Message:**\n{chat_text}\n"
                 f"🤖 **Bot Reply:**\n{bot_reply}"
@@ -39,13 +42,19 @@ async def log_conversation(client, message, bot_reply):
             except: pass
     except: pass
 
-# --- COMMANDS (Ye sabse upar rahenge) ---
+# --- COMMANDS ---
 
 @app.on_message(filters.command("start"))
 async def start_handler(client, message):
     try:
         user = message.from_user
         await db.add_user(user.id, user.first_name, user.username)
+        
+        # Group mein short reply, Private mein full
+        if message.chat.type != ChatType.PRIVATE:
+            await message.reply_text("Namaste! Main Raj ka AI Assistant hu. 'Dev' bolkar kuch bhi pucho.")
+            return
+
         await message.reply_text(
             f"**Namaste {user.mention}!** 🙏\n"
             f"Main Raj ka Personal Assistant hu (Dev).\n\n"
@@ -53,7 +62,6 @@ async def start_handler(client, message):
         )
     except: pass
 
-# ✅ COMMAND CHANGE: /img aur /image dono chalenge
 @app.on_message(filters.command(["image", "img"]))
 async def image_gen_handler(client, message):
     try:
@@ -82,42 +90,46 @@ async def broadcast_handler(client, message):
     sent, failed = await broadcast_message(client, message.reply_to_message)
     await msg.edit_text(f"✅ Ho gaya\nSent: {sent}\nFailed: {failed}")
 
-# --- MAIN CHAT LOGIC ---
+# --- MAIN CHAT LOGIC (Group + Private) ---
 
-# ✅ FINAL MAGIC FIX:
-# Iska matlab: "Agar message COMMAND NAHI HAI, tabhi Text Handler chalao."
-# Ab /img, /start sab chalenge, aur normal text alag chalega.
-@app.on_message(filters.text & filters.private & ~filters.command(["start", "image", "img", "broadcast"]))
+# ✅ Change: 'filters.private' hata diya hai. Ab ye sab jagah sunega.
+@app.on_message(filters.text & ~filters.command(["start", "image", "img", "broadcast"]))
 async def text_handler(client, message):
     user_id = message.from_user.id
     text = message.text.strip()
     text_lower = text.lower()
+    is_private = message.chat.type == ChatType.PRIVATE
     
     speaker_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
 
-    # 1. SECURITY (Raj)
-    if text_lower == "raj":
-        if not Security.is_waiting(user_id):
-            return await message.reply(Security.initiate_auth(user_id))
-    
-    if Security.is_waiting(user_id):
-        success, response, photo_url = await Security.check_password(user_id, text)
-        if photo_url:
-            await message.reply_photo(photo=photo_url, caption=response)
-        else:
-            await message.reply(response)
-        await log_conversation(client, message, f"Security: {success}")
-        return
+    # 1. SECURITY (Only in Private Chat)
+    # Group mein password mat mango warna sab dekh lenge
+    if is_private:
+        if text_lower == "raj":
+            if not Security.is_waiting(user_id):
+                return await message.reply(Security.initiate_auth(user_id))
+        
+        if Security.is_waiting(user_id):
+            success, response, photo_url = await Security.check_password(user_id, text)
+            if photo_url:
+                await message.reply_photo(photo=photo_url, caption=response)
+            else:
+                await message.reply(response)
+            await log_conversation(client, message, f"Security: {success}")
+            return
 
-    # 2. JSON GREETINGS
-    json_reply = ai_engine.get_json_reply(text)
-    if json_reply:
-        await asyncio.sleep(0.5)
-        await message.reply_text(json_reply, reply_markup=speaker_btn)
-        await log_conversation(client, message, json_reply)
-        return
+    # 2. JSON GREETINGS (Only in Private)
+    # Group mein "Hi" pe reply karega to spam ho jayega
+    if is_private:
+        json_reply = ai_engine.get_json_reply(text)
+        if json_reply:
+            await asyncio.sleep(0.5)
+            await message.reply_text(json_reply, reply_markup=speaker_btn)
+            await log_conversation(client, message, json_reply)
+            return
 
     # 3. DATABASE MEMORY
+    # Group mein bina "Dev" ke jawab tabhi dega agar exactly match ho
     cached_ans = await db.get_cached_response(text)
     if cached_ans:
         await message.reply_text(cached_ans, reply_markup=speaker_btn)
@@ -125,6 +137,7 @@ async def text_handler(client, message):
         return
 
     # 4. AI CHECK (Wake Word: "Dev")
+    # Group ho ya Private, "Dev" bolne par hamesha chalega
     if "dev" in text_lower:
         await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
         if Config.SMART_DELAY > 0: await asyncio.sleep(Config.SMART_DELAY)
@@ -134,7 +147,8 @@ async def text_handler(client, message):
             await message.reply_text(ai_response, reply_markup=speaker_btn)
             await log_conversation(client, message, ai_response)
         else:
-            await message.reply_text("Abhi busy hu.")
+            # Group mein fail hone par shant raho
+            if is_private: await message.reply_text("Abhi busy hu.")
     else:
         pass
 
@@ -152,8 +166,11 @@ async def speak_callback_handler(client, callback_query: CallbackQuery):
     except:
         await callback_query.answer("❌ Error.", show_alert=True)
 
+# ✅ Change: Voice note group mein bhi sunega
 @app.on_message(filters.voice)
 async def voice_handler(client, message):
+    # Group mein har voice note par reply mat karo, unless mentioned (Optional)
+    # Filhal enable rakha hai
     msg = await message.reply("🎤 Sun raha hu...")
     file_path = await message.download()
     text_resp = await voice_engine.voice_to_text_and_reply(file_path)
@@ -166,10 +183,10 @@ async def voice_handler(client, message):
 async def main():
     try: await start_server()
     except: pass
-    logger.info("🚀 Raj Bot (All Fixed) Starting...")
+    logger.info("🚀 Raj Bot (Group Edition) Starting...")
     await app.start()
     if Config.LOG_CHANNEL_ID:
-        try: await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Online & Ready!**")
+        try: await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Online (Groups Enabled)!**")
         except: pass
     await idle()
     await app.stop()
