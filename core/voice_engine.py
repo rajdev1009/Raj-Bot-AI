@@ -1,5 +1,6 @@
 import edge_tts
 import os
+from gtts import gTTS
 import google.generativeai as genai
 from config import Config
 from utils.logger import logger
@@ -9,19 +10,28 @@ class VoiceEngine:
     @staticmethod
     async def text_to_speech(text, output_file="response.mp3"):
         """
-        Generates voice from text.
-        NOTE: edge-tts 6.1.12 update is required for this to work.
+        Dual Engine TTS:
+        1. Try Edge TTS (High Quality).
+        2. If fails, Fallback to Google TTS (Reliable).
         """
         try:
-            # Voice change kiya hai jo zyada stable hai
+            # PLAN A: Edge TTS
             voice = "en-US-ChristopherNeural"
-            
             communicate = edge_tts.Communicate(text, voice)
             await communicate.save(output_file)
             return output_file
+            
         except Exception as e:
-            logger.error(f"TTS Generation Error: {e}")
-            return None
+            logger.error(f"Edge TTS Failed: {e}. Switching to Google TTS...")
+            
+            try:
+                # PLAN B: Google TTS (Backup)
+                tts = gTTS(text=text, lang='hi') # Hindi accent for natural feel
+                tts.save(output_file)
+                return output_file
+            except Exception as e2:
+                logger.error(f"Google TTS also failed: {e2}")
+                return None
 
     @staticmethod
     async def voice_to_text_and_reply(voice_path):
@@ -30,7 +40,6 @@ class VoiceEngine:
             model = genai.GenerativeModel('gemini-2.5-flash')
             myfile = genai.upload_file(voice_path)
             
-            # System Prompt for Voice
             result = await model.generate_content_async(
                 [myfile, "Listen to this audio and reply in friendly Hinglish as 'Dev'."]
             )
