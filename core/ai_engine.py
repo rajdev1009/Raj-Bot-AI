@@ -5,11 +5,10 @@ from config import Config
 from utils.rate_limiter import limiter
 from utils.logger import logger
 
-# Configure Gemini
 genai.configure(api_key=Config.GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Load JSON responses
+# Load JSON
 with open('data/responses.json', 'r', encoding='utf-8') as f:
     JSON_RESPONSES = json.load(f)
 
@@ -17,46 +16,45 @@ class AIEngine:
     
     @staticmethod
     async def get_response(user_id, text):
-        """Decides between Gemini and JSON based on Rate Limit."""
+        """
+        Agar user question puche aur time limit baki ho -> AI Reply
+        Agar limit over ho ya simple chat ho -> Return None (Taaki JSON use ho)
+        """
         text_lower = text.lower().strip()
         
-        # 1. Try JSON Fallback (Fastest & Free) if Rate Limited or Simple Match
+        # 1. Rate Limit Check (Silent)
         if not limiter.can_use_ai(user_id):
-            logger.info(f"User {user_id} rate limited. Switching to JSON.")
-            return AIEngine.get_json_reply(text_lower)
+            return None # Chupchap JSON par shift ho jao
         
-        # 2. If Allowed, use Gemini
+        # 2. Try Gemini AI
         try:
-            logger.info(f"Using Gemini AI for {user_id}")
+            logger.info(f"AI Processing for {user_id}")
             response = await model.generate_content_async(text)
             return response.text
         except Exception as e:
             logger.error(f"Gemini Error: {e}")
-            return AIEngine.get_json_reply(text_lower)
+            return None # Error aaya to bhi JSON use karo
 
     @staticmethod
     def get_json_reply(text):
-        """Fuzzy logic for JSON matching."""
-        best_match = None
+        """Finds best match from JSON"""
+        text = text.lower()
         
+        # Exact/Partial Match Search
         for key in JSON_RESPONSES:
             if key in text:
-                best_match = key
-                break
+                return random.choice(JSON_RESPONSES[key])
         
-        if best_match:
-            return random.choice(JSON_RESPONSES[best_match])
-        else:
-            return "I am resting right now (Rate Limit). Ask me in 1 minute or say 'Hi'."
+        # Agar kuch na mile
+        return random.choice(JSON_RESPONSES["default"])
 
     @staticmethod
-    async def analyze_image(image_path, prompt="Describe this image"):
+    async def analyze_image(image_path):
         try:
             file = genai.upload_file(image_path)
-            result = await model.generate_content_async([file, prompt])
+            result = await model.generate_content_async([file, "Describe this image in Hinglish short."])
             return result.text
-        except Exception as e:
-            logger.error(f"Image Analysis Error: {e}")
-            return "Could not analyze image."
+        except:
+            return "Image samajh nahi aa rahi."
 
 ai_engine = AIEngine()
