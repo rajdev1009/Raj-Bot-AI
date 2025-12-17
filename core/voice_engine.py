@@ -8,13 +8,13 @@ class VoiceEngine:
     
     @staticmethod
     async def text_to_speech(text, output_file="response.mp3"):
-        """Generates voice from text using Edge TTS (Latest)."""
+        """
+        Generates voice from text.
+        NOTE: edge-tts 6.1.12 update is required for this to work.
+        """
         try:
-            # Voice: English Male (Christopher) - Ye sabse stable hai
+            # Voice change kiya hai jo zyada stable hai
             voice = "en-US-ChristopherNeural"
-            
-            # Agar Hindi detect ho to Hindi voice use kar sakte hain
-            # Filhal universal voice rakhte hain
             
             communicate = edge_tts.Communicate(text, voice)
             await communicate.save(output_file)
@@ -28,13 +28,11 @@ class VoiceEngine:
         """Uses Gemini 2.5 Flash to listen and reply."""
         try:
             model = genai.GenerativeModel('gemini-2.5-flash')
-            
-            # Upload Audio
             myfile = genai.upload_file(voice_path)
             
-            # Prompt
+            # System Prompt for Voice
             result = await model.generate_content_async(
-                [myfile, "Listen to this audio and reply in Hinglish as 'Dev'."]
+                [myfile, "Listen to this audio and reply in friendly Hinglish as 'Dev'."]
             )
             return result.text
         except Exception as e:
