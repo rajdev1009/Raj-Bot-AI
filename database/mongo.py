@@ -12,7 +12,7 @@ class Database:
         
         # Collections
         self.users = self.db.users
-        self.cache = self.db.qa_cache  # Memory Bank
+        self.cache = self.db.qa_cache
         self.logs = self.db.logs
 
     async def add_user(self, user_id, first_name, username):
@@ -27,22 +27,28 @@ class Database:
         except Exception as e:
             pass
 
-    # --- ADVANCED MEMORY SYSTEM ---
+    # --- SMART MEMORY LOGIC ---
     
     def clean_text(self, text):
-        """Text ko clean karta hai taaki matching achi ho"""
-        # Sirf letters aur numbers rakho, extra space hatao, lowercase karo
-        # Example: "Who is PM??" -> "who is pm"
-        text = text.lower()
-        text = re.sub(r'[^\w\s]', '', text) 
+        """
+        Query ko clean karta hai taaki 'Dev' word hatne ke baad match ho sake.
+        Example: "  Who is PM?  " -> "who is pm"
+        """
+        text = text.lower().strip()
+        
+        # Agar query galti se "dev " se shuru ho rahi hai (check ke waqt), to use bhi hata do
+        text = re.sub(r'^\s*dev\s+', '', text)
+        
+        # Special chars hatao (optional, par matching ke liye acha hai)
+        # text = re.sub(r'[^\w\s]', '', text) 
+        
         return text.strip()
 
     async def get_cached_response(self, query):
-        """Check karta hai ki ye sawal pehle save hua hai ya nahi"""
         try:
             clean_query = self.clean_text(query)
             
-            # Database mein dhoondo
+            # Exact Match Dhoondo
             result = await self.cache.find_one({"query": clean_query})
             
             if result:
@@ -52,16 +58,11 @@ class Database:
             return None
 
     async def save_to_cache(self, query, answer):
-        """Naya jawab database mein save karta hai"""
         try:
-            # Time aur Date wale sawal save MAT karna (Kyunki wo badalte rehte hain)
-            ignore_words = ["time", "date", "tarikh", "samay", "baj", "aaj", "kal"]
-            if any(word in query.lower() for word in ignore_words):
-                return
-
+            # Query ko clean karke save karo
             clean_query = self.clean_text(query)
             
-            # Pehle check karo exist karta hai kya, taaki duplicate na ho
+            # Duplicate Check
             existing = await self.cache.find_one({"query": clean_query})
             if not existing:
                 await self.cache.insert_one({
@@ -69,8 +70,9 @@ class Database:
                     "answer": answer,
                     "timestamp": datetime.now()
                 })
+                logger.info(f"💾 Saved to Memory: {clean_query}")
         except Exception as e:
-            logger.error(f"Cache Save Error: {e}")
+            logger.error(f"Cache Error: {e}")
 
     async def log_event(self, collection_name, data):
         try:
