@@ -21,6 +21,13 @@ app = Client(
     bot_token=Config.BOT_TOKEN
 )
 
+# --- 🎚️ GLOBAL SWITCHES (Settings) ---
+# Default: Groups mein Auto-Reply (Hi/Hello) OFF rahega taaki spam na ho.
+# Admin ise /mode command se ON kar sakta hai.
+SETTINGS = {
+    "group_auto_reply": False  # False = Group mein Hi/Hello ignore karega
+}
+
 # --- HELPER: LOGGING ---
 async def log_conversation(client, message, bot_reply):
     try:
@@ -44,13 +51,41 @@ async def log_conversation(client, message, bot_reply):
 
 # --- COMMANDS ---
 
+@app.on_message(filters.command("mode") & filters.user(Config.ADMIN_ID))
+async def mode_switch_handler(client, message):
+    """
+    Admin Command to Toggle Group Auto-Reply
+    Usage: /mode on  OR  /mode off
+    """
+    try:
+        if len(message.command) < 2:
+            status = "✅ ON" if SETTINGS["group_auto_reply"] else "❌ OFF"
+            return await message.reply_text(
+                f"🎚️ **Current Group Mode:** {status}\n\n"
+                f"Likho: `/mode on` (Sabse baat karega)\n"
+                f"Likho: `/mode off` (Sirf 'Dev' bolne par bolega)"
+            )
+        
+        action = message.command[1].lower()
+        
+        if action == "on":
+            SETTINGS["group_auto_reply"] = True
+            await message.reply_text("🔔 **Group Mode: ON**\nAb main Groups mein 'Hi/Hello' ka bhi jawab dunga.")
+        elif action == "off":
+            SETTINGS["group_auto_reply"] = False
+            await message.reply_text("🔕 **Group Mode: OFF**\nAb main Groups mein shant rahunga (Sirf 'Dev' sununga).")
+        else:
+            await message.reply_text("Galat command. Likho `/mode on` ya `/mode off`")
+            
+    except Exception as e:
+        logger.error(f"Mode Error: {e}")
+
 @app.on_message(filters.command("start"))
 async def start_handler(client, message):
     try:
         user = message.from_user
         await db.add_user(user.id, user.first_name, user.username)
         
-        # Group mein short reply, Private mein full
         if message.chat.type != ChatType.PRIVATE:
             await message.reply_text("Namaste! Main Raj ka AI Assistant hu. 'Dev' bolkar kuch bhi pucho.")
             return
@@ -90,10 +125,9 @@ async def broadcast_handler(client, message):
     sent, failed = await broadcast_message(client, message.reply_to_message)
     await msg.edit_text(f"✅ Ho gaya\nSent: {sent}\nFailed: {failed}")
 
-# --- MAIN CHAT LOGIC (Group + Private) ---
+# --- MAIN CHAT LOGIC ---
 
-# ✅ Change: 'filters.private' hata diya hai. Ab ye sab jagah sunega.
-@app.on_message(filters.text & ~filters.command(["start", "image", "img", "broadcast"]))
+@app.on_message(filters.text & ~filters.command(["start", "image", "img", "broadcast", "mode"]))
 async def text_handler(client, message):
     user_id = message.from_user.id
     text = message.text.strip()
@@ -102,8 +136,7 @@ async def text_handler(client, message):
     
     speaker_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
 
-    # 1. SECURITY (Only in Private Chat)
-    # Group mein password mat mango warna sab dekh lenge
+    # 1. SECURITY (Only Private)
     if is_private:
         if text_lower == "raj":
             if not Security.is_waiting(user_id):
@@ -118,9 +151,12 @@ async def text_handler(client, message):
             await log_conversation(client, message, f"Security: {success}")
             return
 
-    # 2. JSON GREETINGS (Only in Private)
-    # Group mein "Hi" pe reply karega to spam ho jayega
-    if is_private:
+    # 2. JSON GREETINGS (On/Off Logic Here)
+    # Rule: Private mein Hamesha chalega.
+    # Rule: Group mein tabhi chalega jab SETTINGS["group_auto_reply"] True ho.
+    should_reply_json = is_private or SETTINGS["group_auto_reply"]
+    
+    if should_reply_json:
         json_reply = ai_engine.get_json_reply(text)
         if json_reply:
             await asyncio.sleep(0.5)
@@ -129,15 +165,17 @@ async def text_handler(client, message):
             return
 
     # 3. DATABASE MEMORY
-    # Group mein bina "Dev" ke jawab tabhi dega agar exactly match ho
-    cached_ans = await db.get_cached_response(text)
-    if cached_ans:
-        await message.reply_text(cached_ans, reply_markup=speaker_btn)
-        await log_conversation(client, message, cached_ans)
-        return
+    # Group mein bina "Dev" ke jawab sirf tab dega agar setting ON ho.
+    should_reply_db = is_private or SETTINGS["group_auto_reply"]
+    if should_reply_db:
+        cached_ans = await db.get_cached_response(text)
+        if cached_ans:
+            await message.reply_text(cached_ans, reply_markup=speaker_btn)
+            await log_conversation(client, message, cached_ans)
+            return
 
     # 4. AI CHECK (Wake Word: "Dev")
-    # Group ho ya Private, "Dev" bolne par hamesha chalega
+    # Ye HAMESHA chalega (Group/Private/Off/On sab jagah)
     if "dev" in text_lower:
         await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
         if Config.SMART_DELAY > 0: await asyncio.sleep(Config.SMART_DELAY)
@@ -147,7 +185,6 @@ async def text_handler(client, message):
             await message.reply_text(ai_response, reply_markup=speaker_btn)
             await log_conversation(client, message, ai_response)
         else:
-            # Group mein fail hone par shant raho
             if is_private: await message.reply_text("Abhi busy hu.")
     else:
         pass
@@ -166,11 +203,8 @@ async def speak_callback_handler(client, callback_query: CallbackQuery):
     except:
         await callback_query.answer("❌ Error.", show_alert=True)
 
-# ✅ Change: Voice note group mein bhi sunega
 @app.on_message(filters.voice)
 async def voice_handler(client, message):
-    # Group mein har voice note par reply mat karo, unless mentioned (Optional)
-    # Filhal enable rakha hai
     msg = await message.reply("🎤 Sun raha hu...")
     file_path = await message.download()
     text_resp = await voice_engine.voice_to_text_and_reply(file_path)
@@ -183,10 +217,10 @@ async def voice_handler(client, message):
 async def main():
     try: await start_server()
     except: pass
-    logger.info("🚀 Raj Bot (Group Edition) Starting...")
+    logger.info("🚀 Raj Bot (With Mode Switch) Starting...")
     await app.start()
     if Config.LOG_CHANNEL_ID:
-        try: await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Online (Groups Enabled)!**")
+        try: await app.send_message(Config.LOG_CHANNEL_ID, "✅ **Bot Online: Mode Switch Ready!**")
         except: pass
     await idle()
     await app.stop()
