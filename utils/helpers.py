@@ -1,6 +1,7 @@
 import time
 
 def get_readable_time(seconds: int) -> str:
+    """Converts seconds into a readable string like '1d 2h 30m'"""
     count = 0
     ping_time = ""
     time_list = []
@@ -22,4 +23,4 @@ def get_readable_time(seconds: int) -> str:
     time_list.reverse()
     ping_time += ":".join(time_list)
     return ping_time
-  
+    
