@@ -1,10 +1,15 @@
+<div align="center">
+  <img src="https://i.ibb.co/wNm5kJn4/1765831046347-2.jpg" alt="Raj AI Bot Banner" style="border: 4px solid #333; border-radius: 8px; width: 100%; max-width: 900px;">
+</div>
+<br>
+
 # 🤖 Raj AI Bot - Advanced Telegram Assistant
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python)
 ![Gemini](https://img.shields.io/badge/AI-Gemini%201.5-orange?style=for-the-badge&logo=google)
 ![MongoDB](https://img.shields.io/badge/DB-MongoDB-green?style=for-the-badge&logo=mongodb)
 
-A production-grade, asynchronous Telegram Bot powered by Google's Gemini AI. 
+A production-grade, asynchronous Telegram Bot powered by Google's Gemini AI.
 Designed for 24/7 uptime with "Smart Delay" to mimic human interaction and a Hybrid Memory system.
 
 ## 🚀 Features
