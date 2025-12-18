@@ -2,7 +2,6 @@ import motor.motor_asyncio
 from config import Config
 from datetime import datetime
 from utils.logger import logger
-import asyncio
 
 class Database:
     def __init__(self):
@@ -10,27 +9,26 @@ class Database:
         self.db = self.client["RajDev_Bot"]
         self.users = self.db["users"]
         self.responses = self.db["ai_responses"]
-        logger.info("🗄️ MongoDB Connection Initialized!")
-
-    async def setup_indexes(self):
-        try:
-            # 7-day cleanup index
-            await self.responses.create_index("date", expireAfterSeconds=604800)
-            logger.info("✅ 7-Day Auto-Cleanup Index Verified!")
-        except Exception as e:
-            logger.error(f"❌ Index Setup Error: {e}")
+        logger.info("🗄️ MongoDB Connection Verified!")
 
     async def add_user(self, user_id, first_name, username):
         user = await self.users.find_one({"_id": user_id})
         if not user:
             await self.users.insert_one({
-                "_id": user_id, "first_name": first_name, "username": username, "date": datetime.now()
+                "_id": user_id,
+                "first_name": first_name,
+                "username": username,
+                "date": datetime.now()
             })
 
     async def get_stats(self):
-        u = await self.users.count_documents({})
-        m = await self.responses.count_documents({})
-        return u, m
+        """Bot ki report card deta hai"""
+        u_count = await self.users.count_documents({})
+        m_count = await self.responses.count_documents({})
+        return u_count, m_count
+
+    async def get_all_users(self):
+        return await self.users.find({}).to_list(length=None)
 
     async def get_cached_response(self, query):
         if not query: return None
@@ -42,7 +40,9 @@ class Database:
         query = query.lower().strip()
         await self.responses.delete_many({"query": query})
         await self.responses.insert_one({
-            "query": query, "response": response, "date": datetime.now()
+            "query": query,
+            "response": response,
+            "date": datetime.now()
         })
 
 db = Database()
