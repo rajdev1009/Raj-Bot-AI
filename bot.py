@@ -15,7 +15,7 @@ from core.security import Security
 from utils.logger import logger
 from utils.server import start_server
 
-# --- 🎨 STARTUP LOGO (Raj Dev Edition) ---
+# --- 🎨 STARTUP LOGO (Raj Dev Systems Edition) ---
 LOGO = r"""
 _________________________________________________________________________
     
@@ -99,12 +99,11 @@ async def search_handler(client, message):
     web_data = await search_web(query)
     
     if web_data == "SEARCH_BLOCKED":
-        # Fallback logic agar DuckDuckGo block kare
-        res = await ai_engine.get_response(message.from_user.id, f"DuckDuckGo is currently limited. Use your internal knowledge to answer: {query}")
-        await wait_msg.edit(f"✨ **Note: Live search busy thi, par mere paas ye info hai:**\n\n{res}")
+        res = await ai_engine.get_response(message.from_user.id, f"DuckDuckGo is currently limited. Use your knowledge: {query}")
+        await wait_msg.edit(f"✨ **Internal Knowledge:**\n\n{res}")
     elif web_data:
-        res = await ai_engine.get_response(message.from_user.id, f"Analyze and summarize this web search for the user: {query}\n\nWeb Data:\n{web_data}")
-        await wait_msg.edit(f"✨ **Live Web Results:**\n\n{res}")
+        res = await ai_engine.get_response(message.from_user.id, f"Summarize this search for the user: {query}\n\nWeb Data:\n{web_data}")
+        await wait_msg.edit(f"✨ **Live Results:**\n\n{res}")
     else:
         await wait_msg.edit("❌ Kuch nahi mila.")
 
@@ -164,18 +163,16 @@ async def pdf_handler(client, message):
         path = await message.download()
         try:
             doc = fitz.open(path)
-            content = ""
-            for page in doc: content += page.get_text()
+            content = "".join([page.get_text() for page in doc])
             doc.close()
-            # PDF Summary using 2.5 Flash
-            res = await ai_engine.get_response(message.from_user.id, f"I am a student. Summarize this PDF content for me: {content[:4000]}")
+            res = await ai_engine.get_response(message.from_user.id, f"Summarize this PDF for a student: {content[:4000]}")
             await wait.edit(f"📝 **PDF Summary:**\n\n{res}")
         except Exception as e:
             logger.error(f"PDF Error: {e}")
             await wait.edit("PDF padhne mein error aaya.")
         if os.path.exists(path): os.remove(path)
 
-# --- 🧠 MAIN LOGIC (THE LOOP) ---
+# --- 🧠 MAIN CHAT LOGIC (THE LOOP) ---
 
 @app.on_message(filters.text & ~filters.command(["start", "img", "image", "search", "stats", "personality", "mode", "broadcast"]))
 async def chat_handler(client, message):
@@ -187,7 +184,7 @@ async def chat_handler(client, message):
     
     spk_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
 
-    # 🛑 1. SECURITY (Private Chat Only)
+    # 🛑 1. SECURITY
     if is_pvt and text_lower == "raj":
         if not Security.is_waiting(user_id): return await message.reply(Security.initiate_auth(user_id))
     if is_pvt and Security.is_waiting(user_id):
@@ -196,28 +193,25 @@ async def chat_handler(client, message):
         else: await message.reply(res)
         return
 
-    # 🧹 Clean Text for Memory Matching
     clean_text = text_lower.replace("dev", "").strip()
 
-    # 🧠 2. DATABASE MEMORY (Priority 1)
+    # 🧠 2. DATABASE MEMORY
     ans = await db.get_cached_response(clean_text)
     if ans:
         await message.reply(ans, reply_markup=spk_btn)
         return
 
-    # 🤖 3. AI ENGINE (Priority 2 - Strict Gemini 2.5 Flash)
+    # 🤖 3. AI ENGINE (Gemini 2.5 Flash)
     if "dev" in text_lower:
         await client.send_chat_action(message.chat.id, ChatAction.TYPING)
         ai_res = await ai_engine.get_response(user_id, text)
-        
         if ai_res:
-            # ✅ Save to memory for 7 days (auto-cleanup in mongo.py)
             await db.add_response(clean_text, ai_res)
             await message.reply(ai_res, reply_markup=spk_btn)
             await log_conversation(client, message, ai_res)
         return
 
-    # 📜 4. JSON FALLBACK (Priority 3)
+    # 📜 4. JSON FALLBACK
     if is_pvt or SETTINGS["group_auto_reply"]:
         j_res = ai_engine.get_json_reply(text)
         if j_res:
@@ -249,20 +243,21 @@ async def voice_msg(client, message):
 
 async def main():
     print(LOGO)
+    
+    # 🧹 Auto-Cleanup Setup (MongoDB TTL)
+    await db.setup_indexes()
+    
     await start_server()
     await app.start()
     logger.info("🚀 RAJ DEV MEGA-BOT (STRICT 2.5 FLASH) ONLINE!")
     
-    # Notify Admin/Log Channel
     if Config.LOG_CHANNEL_ID:
-        try:
-            await app.send_message(Config.LOG_CHANNEL_ID, f"✅ **Bot Online!**\n\n```\n{LOGO}\n```")
+        try: await app.send_message(Config.LOG_CHANNEL_ID, f"✅ **Core Activated!**\n\n```\n{LOGO}\n```")
         except: pass
         
     await idle()
     await app.stop()
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
- 
+    asyncio.run(main())
+    
