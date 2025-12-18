@@ -2,7 +2,6 @@ import motor.motor_asyncio
 from config import Config
 from datetime import datetime
 from utils.logger import logger
-import asyncio
 
 class Database:
     def __init__(self):
@@ -14,7 +13,7 @@ class Database:
         logger.info("🗄️ MongoDB Connection Initialized!")
 
     async def setup_indexes(self):
-        """Automatically deletes memories older than 7 days (TTL Index)"""
+        """Ye function 7 din purani memory saaf karne ke liye hai"""
         try:
             # 604800 seconds = 7 days
             await self.responses.create_index("date", expireAfterSeconds=604800)
@@ -36,9 +35,6 @@ class Database:
         u_count = await self.users.count_documents({})
         m_count = await self.responses.count_documents({})
         return u_count, m_count
-
-    async def get_all_users(self):
-        return await self.users.find({}).to_list(length=None)
 
     async def get_cached_response(self, query):
         if not query: return None
