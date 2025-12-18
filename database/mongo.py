@@ -1,6 +1,6 @@
 import motor.motor_asyncio
 from config import Config
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils.logger import logger
 
 class Database:
@@ -9,7 +9,19 @@ class Database:
         self.db = self.client["RajDev_Bot"]
         self.users = self.db["users"]
         self.responses = self.db["ai_responses"]
-        logger.info("🗄️ MongoDB Connection Verified!")
+        
+        # 🧹 7-DAY AUTO CLEANUP LOGIC (TTL Index)
+        # Ye line check karegi ki 'date' field se 7 din (604800 seconds) purana data khud delete ho jaye.
+        asyncio.create_task(self.setup_indexes())
+        logger.info("🗄️ MongoDB Connection Verified with 7-Day Auto-Cleanup!")
+
+    async def setup_indexes(self):
+        """Automatically deletes memories older than 7 days"""
+        try:
+            await self.responses.create_index("date", expireAfterSeconds=604800)
+            logger.info("✅ 7-Day Auto-Cleanup Index Created!")
+        except Exception as e:
+            logger.error(f"Index Error: {e}")
 
     async def add_user(self, user_id, first_name, username):
         user = await self.users.find_one({"_id": user_id})
@@ -22,13 +34,9 @@ class Database:
             })
 
     async def get_stats(self):
-        """Bot ki report card deta hai"""
         u_count = await self.users.count_documents({})
         m_count = await self.responses.count_documents({})
         return u_count, m_count
-
-    async def get_all_users(self):
-        return await self.users.find({}).to_list(length=None)
 
     async def get_cached_response(self, query):
         if not query: return None
@@ -42,7 +50,7 @@ class Database:
         await self.responses.insert_one({
             "query": query,
             "response": response,
-            "date": datetime.now()
+            "date": datetime.now() # Isi date se 7 din count honge
         })
 
 db = Database()
