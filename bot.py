@@ -67,7 +67,7 @@ async def log_conversation(client, message, bot_reply):
 @app.on_message(filters.command("stats") & filters.user(Config.ADMIN_ID))
 async def stats_handler(client, message):
     u_count, m_count = await db.get_stats()
-    await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Model: Gemini 2.5 Flash")
+    await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Raj LLM MODEL.")
 
 @app.on_message(filters.command("personality") & filters.user(Config.ADMIN_ID))
 async def personality_handler(client, message):
@@ -105,7 +105,7 @@ async def mode_switch(client, message):
 async def start_cmd(client, message):
     if not message.from_user: return
     await db.add_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
-    await message.reply_text(f"**Namaste {message.from_user.first_name}!** 🙏\nMain Raj ka AI Assistant hu (Dev). Main **Gemini 2.5 Flash** use karta hu. Padhai mein help chahiye toh puchna!")
+    await message.reply_text(f"**Namaste {message.from_user.first_name}!** 🙏\nMain Raj ka Assistant hu (Dev). Main **RAJ-LLM-MODEL** use karta hu. Padhai mein help chahiye toh puchna!")
 
 @app.on_message(filters.command(["img", "image"]))
 async def img_cmd(client, message):
@@ -123,7 +123,7 @@ async def img_cmd(client, message):
 
 @app.on_message(filters.photo)
 async def vision_handler(client, message):
-    wait = await message.reply("📸 Photo dekh raha hu (Gemini 2.5 Vision)...")
+    wait = await message.reply("📸 Photo dekh raha hu ...")
     path = await message.download()
     prompt = message.caption or "Is photo ko samjhao"
     res = await ai_engine.get_response(message.from_user.id, prompt, photo_path=path)
