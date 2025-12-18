@@ -14,22 +14,18 @@ from core.security import Security
 from utils.logger import logger
 from utils.server import start_server
 
-# --- 🎨 STARTUP LOGO (UPDATED) ---
+# --- 🎨 STARTUP LOGO ---
 LOGO = r"""
-_________________________________________________________________________
-    
-    [ R A J   D E V   S Y S T E M S ]                        RAJ DEV
-    
-    R A J      ██████╗   ███████╗ ██╗   ██╗
-    D E V      ██╔══██╗ ██╔════╝ ██║   ██║
-    A S I S T  ██║    ██║█████╗     ██║  ██║
-    B O T      ██║   ██║ ██╔══╝    ╚██╗ ██╔╝ 
-               ██████╔╝███████╗  ╚████╔╝  
-               ╚═════╝  ╚══════╝   ╚═══╝   
-    
-    >>> AUTHENTICATED BY: RAJ DEV                     running -- R A J
-    >>> ALL SYSTEMS ARE RUNNING STABLE
-_________________________________________________________________________
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+ ▓                                                                          ▓
+▓   ██████╗   █████╗     ██████╗ ███████╗ ██╗    ██╗  ▓
+ ▓  ██╔══██╗██╔══██╗     ██╔═██╗██╔═══╝  ██║   ██║   ▓
+▓   ██████╔╝███████║     ██║  ██║█████╗   ██║   ██║   ▓
+ ▓  ██╔══██╗██╔══██║     ██║  ██║██╔══╝  ╚██╗ ██╔    ▓
+▓   ██║    ██║██║  ██║   ██████╔╝███████╗ ╚████╔╝    ▓
+ ▓                                                                           ▓
+▓   CORE ACTIVATED | DEVELOPED BY RAJ DEV | 2025                             ▓
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 """
 
 app = Client(
@@ -219,4 +215,4 @@ async def main():
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
-  
+    
