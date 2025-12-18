@@ -1,41 +1,51 @@
-import random
-import aiohttp
-import os
+import google.generativeai as genai
+from config import Config
 from utils.logger import logger
+import json
+import random
 
-class ImageEngine:
+if Config.GEMINI_API_KEY:
+    genai.configure(api_key=Config.GEMINI_API_KEY)
+
+class AIEngine:
     def __init__(self):
-        self.api_url = "https://image.pollinations.ai/prompt/"
-
-    async def generate_image(self, prompt):
-        """
-        Pollinations AI se image generate karke download karta hai.
-        Returns: Local file path
-        """
+        self.responses = {}
         try:
-            if not prompt: return None
-            
-            seed = random.randint(1, 999999)
-            # Prompt ko URL safe banao
-            clean_prompt = prompt.strip().replace(" ", "%20")
-            final_url = f"{self.api_url}{clean_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
-            
-            image_name = f"raj_ai_{seed}.jpg"
-
-            logger.info(f"🎨 Generating Image for: {prompt}")
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.get(final_url, timeout=30) as resp:
-                    if resp.status == 200:
-                        content = await resp.read()
-                        with open(image_name, "wb") as f:
-                            f.write(content)
-                        return image_name
-                    else:
-                        logger.error(f"❌ Image API Error Status: {resp.status}")
-                        return None
+            with open("data/responses.json", "r", encoding="utf-8") as f:
+                self.responses = json.load(f)
         except Exception as e:
-            logger.error(f"❌ Image Engine Crash: {e}")
+            logger.error(f"📂 JSON Load Error: {e}")
+
+        self.instruction = (
+            "You are Dev, Raj Dev's personal assistant from Lumding, Assam. "
+            "Speak in natural Hinglish. Be friendly, smart, and loyal. "
+            "Never mention you are an AI. You are a real person named Dev."
+        )
+        self.model = self.setup_model()
+
+    def setup_model(self):
+        try:
+            return genai.GenerativeModel("gemini-2.5-flash", system_instruction=self.instruction)
+        except:
+            return genai.GenerativeModel("gemini-1.5-flash", system_instruction=self.instruction)
+
+    async def get_response(self, user_id, text):
+        try:
+            response = await self.model.generate_content_async(text)
+            return response.text.strip()
+        except Exception as e:
+            logger.error(f"🤖 AI Error: {e}")
             return None
 
-image_engine = ImageEngine()
+    def get_json_reply(self, text):
+        """Sirf chote messages (Greetings) par react karega."""
+        text = text.lower().strip()
+        # 🔒 Agar 4 shabd se bada sentence hai to JSON skip karo (AI handles it)
+        if len(text.split()) > 4: return None
+
+        for key, val in self.responses.items():
+            if key in text:
+                return random.choice(val)
+        return None
+
+ai_engine = AIEngine()
