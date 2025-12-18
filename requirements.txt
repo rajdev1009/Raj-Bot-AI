@@ -8,4 +8,6 @@ edge-tts==6.1.12
 gTTS==2.5.1
 aiohttp==3.9.1
 aiofiles==23.2.1
-dnspython==2.4.2
+duckduckgo_search==6.1.7
+PyMuPDF==1.24.2
+Pillow==10.3.0
