@@ -61,7 +61,7 @@ async def mode_switch(c, m):
 @app.on_message(filters.command("start"))
 async def start(c, m):
     await db.add_user(m.from_user.id, m.from_user.first_name, m.from_user.username)
-    await m.reply("Namaste! Main Raj ka AI Assistant hu (Dev).")
+    await m.reply("Namaste! Main Raj ka Assistant hu (Dev).")
 
 @app.on_message(filters.command(["image", "img"]))
 async def img_gen(c, m):
@@ -146,7 +146,7 @@ async def main():
     print(LOGO)
     try: await start_server()
     except: pass
-    logger.info("🚀 Raj Bot (2.5 Flash Edition) Starting...")
+    logger.info("🚀 Raj Bot Starting...")
     await app.start()
     await idle()
     await app.stop()
