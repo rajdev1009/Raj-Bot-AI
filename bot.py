@@ -86,7 +86,7 @@ async def start_handler(client, message):
         await db.add_user(user.id, user.first_name, user.username)
         if message.chat.type != ChatType.PRIVATE:
             return await message.reply_text("Namaste! Main Raj ka AI Assistant hu.")
-        await message.reply_text(f"**Namaste {user.mention}!** 🙏\nMain Raj ka AI Assistant hu (Dev).")
+        await message.reply_text(f"**Namaste {user.mention}!** 🙏\nMain Raj ka Assistant hu (Dev).")
     except: pass
 
 @app.on_message(filters.command(["image", "img"]))
@@ -160,7 +160,7 @@ async def text_handler(client, message):
             await message.reply_text(ai_response, reply_markup=speaker_btn)
             await log_conversation(client, message, ai_response)
         else:
-            if is_private: await message.reply_text("Abhi busy hu (AI Error).")
+            if is_private: await message.reply_text("Abhi busy hu yaar.")
         
         # ⚠️ IMPORTANT: Agar "Dev" bola hai, to JSON check MAT karo. Yahi ruk jao.
         return
