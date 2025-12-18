@@ -1,123 +1,96 @@
-import json
-import random
-import datetime
-import re
 import google.generativeai as genai
 from config import Config
-from database.mongo import db
-from utils.rate_limiter import limiter
 from utils.logger import logger
+import json
+import os
 
-# API Setup
-genai.configure(api_key=Config.GEMINI_API_KEY)
-
-# Gemini 2.5 Flash Model
-model = genai.GenerativeModel('gemini-2.5-flash')
-
-# Load JSON Responses
-try:
-    with open('data/responses.json', 'r', encoding='utf-8') as f:
-        JSON_RESPONSES = json.load(f)
-except:
-    JSON_RESPONSES = {}
+# API Key Setup
+if Config.GEMINI_API_KEY:
+    genai.configure(api_key=Config.GEMINI_API_KEY)
+else:
+    logger.error("❌ GEMINI_API_KEY missing in .env file!")
 
 class AIEngine:
-    
-    @staticmethod
-    async def get_response(user_id, text):
-        """
-        AI se reply leta hai (Strict Human Persona).
-        """
-        # 1. Rate Limit
-        if not limiter.can_use_ai(user_id):
-            return None 
-
-        # 2. Check Cache
-        cached_ans = await db.get_cached_response(text)
-        if cached_ans:
-            return cached_ans
-
-        # 3. AI Processing
+    def __init__(self):
+        # 1. Load JSON Data (Responses)
+        self.responses = {}
         try:
-            logger.info(f"AI Request: {text}")
-            
-            # Dynamic Info
-            now = datetime.datetime.now()
-            current_time = now.strftime("%I:%M %p")
-            current_date = now.strftime("%d %B %Y")
-            
-            # --- STRICT SYSTEM PROMPT (BRAINWASH) ---
-            system_instruction = f"""
-            IDENTITY:
-            Name: Dev
-            Role: Human Assistant & Developer (NOT an AI).
-            Location: Lumding, Assam.
-            Language: Hinglish (Hindi + English mix).
-            
-            STRICT RULES:
-            1. NEVER say "As an AI", "I don't have feelings", or "I am a language model".
-            2. Keep answers SHORT & CASUAL (Friend style). Only give long answers for studies/syllabus.
-            3. If asked "How are you?", say "Main mast hu", "Ekdum fit", or "Badhiya".
-            4. If asked "Who are you?", say "Main Dev hu, Raj ka assistant".
-            5. Current Info: Date: {current_date}, Time: {current_time}. President: Donald Trump.
+            with open("data/responses.json", "r", encoding="utf-8") as f:
+                self.responses = json.load(f)
+        except Exception as e:
+            logger.error(f"JSON Load Error: {e}")
 
-            EXAMPLE CHATS (Follow this style):
-            User: How are you?
-            Dev: Main badhiya hu boss, tum batao?
-            
-            User: Tum AI ho kya?
-            Dev: Arre nahi bhai, main Dev hu. Insaan hu.
-            
-            User: Kya kar rahe ho?
-            Dev: Bas Raj bhai ke commands handle kar raha hu.
-            """
+        # 2. System Instruction (Character: Dev)
+        self.system_prompt = (
+            "You are Dev, a helpful and friendly AI assistant of Raj Dev. "
+            "You speak in Hinglish (Hindi + English mix). "
+            "You are smart, funny, and loyal to Raj. "
+            "Keep answers short and natural like a human chatting on Telegram."
+        )
 
-            # Model with Instruction
-            model_sys = genai.GenerativeModel(
-                'gemini-2.5-flash',
-                system_instruction=system_instruction
+        # 3. Model Setup (Trying Gemini 2.5 Flash)
+        self.model = self.initialize_model()
+
+    def initialize_model(self):
+        """
+        Professional Logic: Pehle 2.5 Flash try karega.
+        Agar wo API par available nahi hai, to Crash nahi hoga, 1.5 par switch hoga.
+        """
+        try:
+            logger.info("🤖 Trying to connect with Gemini 2.5 Flash...")
+            model = genai.GenerativeModel(
+                model_name="gemini-2.5-flash",
+                system_instruction=self.system_prompt
+            )
+            logger.info("✅ Gemini 2.5 Flash Connected Successfully!")
+            return model
+        except Exception as e:
+            logger.warning(f"⚠️ Gemini 2.5 Flash Error: {e}")
+            logger.info("🔄 Switching to Backup Model (Gemini 1.5 Flash)...")
+            return genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                system_instruction=self.system_prompt
             )
 
-            # Generate
-            response = await model_sys.generate_content_async(text)
-            
-            if response and response.text:
-                final_ans = response.text.strip()
-                
-                # --- CLEANUP (AI galti se AI bol de to fix karo) ---
-                if "As an AI" in final_ans or "language model" in final_ans:
-                    final_ans = "Main thik hu, tum batao?"
+    async def get_response(self, user_id, text):
+        """
+        Gemini AI se response leta hai.
+        """
+        try:
+            if not Config.GEMINI_API_KEY:
+                return "❌ API Key nahi mili boss. .env check karo."
 
-                # 4. SAVE TO CACHE (Without 'Dev')
-                clean_query_for_db = re.sub(r'^\s*dev\s+', '', text, flags=re.IGNORECASE).strip()
-                is_dynamic = any(w in clean_query_for_db.lower() for w in ["time", "date", "tarikh", "samay", "baj", "aaj"])
+            # AI se pucho
+            response = await self.model.generate_content_async(text)
+            
+            # Response text nikalo
+            reply = response.text.strip()
+            
+            # Agar AI ne kuch kharnak/block content diya to
+            if not reply:
+                return "Hmm, iska jawab mere paas nahi hai."
                 
-                if not is_dynamic:
-                    await db.save_to_cache(clean_query_for_db, final_ans)
-                
-                return final_ans
-            else:
-                return None
+            return reply
 
         except Exception as e:
-            logger.error(f"AI Error: {e}")
-            return "Network issue hai, wapas pucho."
+            logger.error(f"🔴 AI ERROR: {e}")
+            return "Network issue hai ya API Key check karo."
 
-    @staticmethod
-    def get_json_reply(text):
-        text = text.lower()
-        for key in JSON_RESPONSES:
+    def get_json_reply(self, text):
+        """
+        JSON file se fast reply dhoondta hai.
+        """
+        text = text.lower().strip()
+        # Direct Match
+        if text in self.responses:
+            import random
+            return random.choice(self.responses[text])
+            
+        # Partial Match (Agar sentence mein keyword ho)
+        for key, replies in self.responses.items():
             if key in text:
-                return random.choice(JSON_RESPONSES[key])
+                import random
+                return random.choice(replies)
         return None
-
-    @staticmethod
-    async def analyze_image(image_path):
-        try:
-            file = genai.upload_file(image_path)
-            result = await model.generate_content_async([file, "Describe this image in Hinglish short."])
-            return result.text
-        except:
-            return "Image clear nahi hai."
 
 ai_engine = AIEngine()
