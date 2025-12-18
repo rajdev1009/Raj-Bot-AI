@@ -14,7 +14,7 @@ from core.security import Security
 from utils.logger import logger
 from utils.server import start_server
 
-# --- 🎨 STARTUP LOGO (Raj Dev Special) ---
+# --- 🎨 STARTUP LOGO (RAJ DEV SPECIAL) ---
 LOGO = r"""
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
  ▓                                                                          ▓
@@ -37,192 +37,162 @@ app = Client(
 )
 
 # --- 🎚️ GLOBAL SETTINGS ---
-# Default: Group mein Auto-Reply OFF (Spam rokne ke liye)
 SETTINGS = {
-    "group_auto_reply": False
+    "group_auto_reply": False  # Admin can toggle this via /mode
 }
 
-# --- 📝 HELPER FUNCTION: LOGGING ---
+# --- 📝 ADVANCED LOGGING SYSTEM ---
 async def log_conversation(client, message, bot_reply):
-    """
-    Ye function chat ko Console aur Telegram Channel dono jagah log karta hai.
-    """
+    """Logs conversation to Console and Telegram Log Channel with error protection."""
     try:
         user = message.from_user
-        chat_text = message.text or "[Media/Sticker]"
-        chat_type = "Private" if message.chat.type == ChatType.PRIVATE else "Group"
+        if not user: return
         
-        # 1. Console Log (Koyeb Dashboard)
+        chat_text = message.text or "[Media/Voice]"
+        chat_type = "Private" if message.chat.type == ChatType.PRIVATE else f"Group ({message.chat.title})"
+        
+        # 1. Console Log
         logger.info(f"📩 [{chat_type}] {user.first_name}: {chat_text}")
         
         # 2. Telegram Log Channel
         if Config.LOG_CHANNEL_ID:
             log_text = (
-                f"**#New_Chat_Log** 📝\n"
-                f"SOURCE: {chat_type}\n"
+                f"**#New_Chat_Log** 📝\n\n"
                 f"👤 **User:** {user.mention} (`{user.id}`)\n"
-                f"📥 **Message:**\n{chat_text}\n"
+                f"📍 **Source:** {chat_type}\n"
+                f"📥 **Message:**\n{chat_text}\n\n"
                 f"🤖 **Bot Reply:**\n{bot_reply}"
             )
             try:
                 await client.send_message(Config.LOG_CHANNEL_ID, log_text)
             except Exception as e:
-                # Agar bot channel me nahi hai to crash nahi hoga
-                pass
+                logger.warning(f"Log Channel Error: {e}")
     except Exception as e:
-        logger.error(f"Logging Error: {e}")
+        logger.error(f"Main Logging Error: {e}")
 
 # --- 🎮 COMMAND HANDLERS ---
 
 @app.on_message(filters.command("mode") & filters.user(Config.ADMIN_ID))
 async def mode_switch_handler(client, message):
-    """
-    Admin Command: Group Auto-Reply ON/OFF karne ke liye.
-    """
     try:
         if len(message.command) < 2:
             status = "✅ ON" if SETTINGS["group_auto_reply"] else "❌ OFF"
-            return await message.reply_text(
-                f"🎚️ **Current Group Mode:** {status}\n\n"
-                f"Likho: `/mode on` (Sabse baat karega)\n"
-                f"Likho: `/mode off` (Sirf 'Dev' bolne par bolega)"
-            )
+            return await message.reply_text(f"🎚️ **Group Mode:** {status}\nUse: `/mode on` or `/mode off`")
         
         action = message.command[1].lower()
-        
         if action == "on":
             SETTINGS["group_auto_reply"] = True
-            await message.reply_text("🔔 **Group Mode: ON**\nAb main Groups mein 'Hi/Hello' ka bhi jawab dunga.")
+            await message.reply_text("🔔 **Group Mode: ON**\nMain groups mein sabse baat karunga.")
         elif action == "off":
             SETTINGS["group_auto_reply"] = False
-            await message.reply_text("🔕 **Group Mode: OFF**\nAb main Groups mein shant rahunga (Sirf 'Dev' sununga).")
-        else:
-            await message.reply_text("Galat command. Likho `/mode on` ya `/mode off`")
-            
+            await message.reply_text("🔕 **Group Mode: OFF**\nMain groups mein sirf 'Dev' sununga.")
     except Exception as e:
-        logger.error(f"Mode Error: {e}")
+        logger.error(f"Mode Command Error: {e}")
 
 @app.on_message(filters.command("start"))
 async def start_handler(client, message):
+    if not message.from_user: return
     try:
         user = message.from_user
-        # User ko Database mein add karo
         await db.add_user(user.id, user.first_name, user.username)
         
-        # Group aur Private ke liye alag welcome message
-        if message.chat.type != ChatType.PRIVATE:
-            await message.reply_text("Namaste! Main Raj ka AI Assistant hu. 'Dev' bolkar kuch bhi pucho.")
-            return
-
-        await message.reply_text(
+        welcome_text = (
             f"**Namaste {user.mention}!** 🙏\n"
-            f"Main Raj ka Personal Assistant hu (Dev).\n\n"
-            f"Agar jawab pata hoga to turant dunga, nahi to **'Dev'** laga kar puchna."
+            f"Main Raj Dev ka AI Assistant hu (Dev).\n\n"
+            f"Mera dimaag Gemini 2.5 Flash se chalta hai. "
+            f"Kuch bhi puchna ho to message mein **'Dev'** zaroor lagana."
         )
+        await message.reply_text(welcome_text)
     except Exception as e:
-        logger.error(f"Start Error: {e}")
+        logger.error(f"Start Handler Error: {e}")
 
 @app.on_message(filters.command(["image", "img"]))
 async def image_gen_handler(client, message):
+    if len(message.command) < 2:
+        return await message.reply("Likho: /img <kya chahiye>")
+    
+    prompt = message.text.split(None, 1)[1]
+    msg = await message.reply("🎨 Painting bana raha hu, thoda ruko...")
+    
     try:
-        if len(message.command) < 2:
-            return await message.reply("Likho: /img <kya chahiye>")
-        
-        prompt = message.text.split(None, 1)[1]
-        msg = await message.reply("🎨 Painting bana raha hu...")
-        
         image_url = await image_engine.generate_image_url(prompt)
-        
         if image_url:
-            await message.reply_photo(photo=image_url, caption=f"Ye lo: {prompt}")
-            await log_conversation(client, message, f"Image Created: {prompt}")
+            await message.reply_photo(photo=image_url, caption=f"**Prompt:** {prompt}\n**By:** Raj AI")
+            await log_conversation(client, message, f"Generated Image: {prompt}")
         else:
-            await message.reply("Server busy hai, image nahi bani.")
-        
-        await msg.delete()
+            await message.reply("❌ Error: Image nahi ban payi.")
     except Exception as e:
-        logger.error(f"Image Error: {e}")
-        await message.reply("Error aa gaya.")
+        logger.error(f"Image Logic Error: {e}")
+        await message.reply("Technical issue aa gaya.")
+    finally:
+        await msg.delete()
 
 @app.on_message(filters.command("broadcast") & filters.user(Config.ADMIN_ID) & filters.reply)
 async def broadcast_handler(client, message):
-    msg = await message.reply_text("📢 Broadcast shuru...")
+    msg = await message.reply_text("📢 Broadcast shuru ho raha hai...")
     sent, failed = await broadcast_message(client, message.reply_to_message)
-    await msg.edit_text(f"✅ Ho gaya\nSent: {sent}\nFailed: {failed}")
+    await msg.edit_text(f"✅ **Broadcast Finished**\n\nSent: {sent}\nFailed: {failed}")
 
-# --- 🧠 MAIN CHAT LOGIC (THE BRAIN) ---
+# --- 🧠 MAIN CHAT LOGIC (PRIORITY BASED) ---
 
 @app.on_message(filters.text & ~filters.command(["start", "image", "img", "broadcast", "mode"]))
 async def text_handler(client, message):
+    if not message.from_user: return
+    
     user_id = message.from_user.id
     text = message.text.strip()
     text_lower = text.lower()
-    is_private = message.chat.type == ChatType.PRIVATE
+    is_pvt = message.chat.type == ChatType.PRIVATE
     
+    # Speaker Button UI
     speaker_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
 
-    # 🛑 1. SECURITY CHECK (Sirf Private Chat mein)
-    if is_private:
+    # 1. SECURITY SYSTEM (Only in Private)
+    if is_pvt:
         if text_lower == "raj":
             if not Security.is_waiting(user_id):
                 return await message.reply(Security.initiate_auth(user_id))
         
         if Security.is_waiting(user_id):
             success, response, photo_url = await Security.check_password(user_id, text)
-            if photo_url:
-                await message.reply_photo(photo=photo_url, caption=response)
-            else:
-                await message.reply(response)
+            if photo_url: await message.reply_photo(photo=photo_url, caption=response)
+            else: await message.reply(response)
             await log_conversation(client, message, f"Security Attempt: {success}")
             return
 
-    # 🧹 SMART TEXT CLEANING
-    # "Dev" hata kar clean text banate hain taaki database mein search kar sakein
+    # 🧹 Clean Text for DB Match
     clean_text = text_lower.replace("dev", "").strip()
-    
-    # 💾 2. DATABASE MEMORY CHECK (Priority #1)
-    # Pehle check karo kya ye sawal pehle pucha gaya hai?
+
+    # 2. DATABASE MEMORY (Priority #1)
+    # Sabse pehle check karo ki kya ye pehle pucha gaya hai?
     cached_ans = await db.get_cached_response(clean_text)
-    
     if cached_ans:
-        # Agar DB mein mil gaya, to wahi se jawab do aur ruk jao.
         await message.reply_text(cached_ans, reply_markup=speaker_btn)
-        # Optional: DB response ko log karna hai to uncomment karo
-        # await log_conversation(client, message, f"[DB Memory] {cached_ans}")
         return
 
-    # 🤖 3. AI CHECK (Priority #2 - Only if "Dev" is present)
+    # 3. AI ENGINE (Priority #2 - Triggered by 'Dev')
     if "dev" in text_lower:
-        await client.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+        await client.send_chat_action(message.chat.id, ChatAction.TYPING)
         
-        if Config.SMART_DELAY > 0:
-            await asyncio.sleep(Config.SMART_DELAY)
-            
+        # AI se jawab mangao
         ai_response = await ai_engine.get_response(user_id, text)
         
         if ai_response:
-            # ✅ MEMORY SAVE: AI ke jawab ko Database mein save karo
-            # Taaki agli baar bina "Dev" ke bhi jawab mil jaye
-            if clean_text:
+            # ✅ SAVE TO MEMORY: Agli baar ke liye yaad rakho
+            try:
                 await db.add_response(clean_text, ai_response)
+            except Exception as db_e:
+                logger.error(f"Memory Save Error: {db_e}")
                 
             await message.reply_text(ai_response, reply_markup=speaker_btn)
             await log_conversation(client, message, ai_response)
         else:
-            if is_private:
-                await message.reply_text("Abhi busy hu, baad mein puchna.")
-        
-        # Agar "Dev" bola tha, to yahi ruk jao. JSON check mat karo.
+            if is_pvt: await message.reply_text("Network issue hai, wapas pucho.")
         return
 
-    # 📜 4. JSON GREETINGS (Priority #3 - Low Priority)
-    # Ye tabhi chalega jab:
-    # 1. Message Private ho, YA
-    # 2. Group mein Mode ON ho.
-    should_reply_json = is_private or SETTINGS["group_auto_reply"]
-    
-    if should_reply_json:
-        # AI Engine ke andar logic hai jo lambe sentences ko ignore karega
+    # 4. JSON RESPONSES (Priority #3 - Fallback for Greetings)
+    if is_pvt or SETTINGS["group_auto_reply"]:
+        # Chote messages (Hi, Hello) ke liye fast JSON reply
         json_reply = ai_engine.get_json_reply(text)
         if json_reply:
             await asyncio.sleep(0.5)
@@ -230,55 +200,41 @@ async def text_handler(client, message):
             await log_conversation(client, message, json_reply)
             return
 
-# --- 🔊 SPEAKER CALLBACK HANDLER ---
+# --- 🔊 CALLBACK: TEXT TO SPEECH ---
 
 @app.on_callback_query(filters.regex("speak_msg"))
 async def speak_callback_handler(client, callback_query: CallbackQuery):
-    await callback_query.answer("🔊 Audio generate ho raha hai...", show_alert=False)
-    
+    await callback_query.answer("🔊 Generating Audio...", show_alert=False)
     text_to_speak = callback_query.message.text or callback_query.message.caption
     
-    if not text_to_speak:
-        await callback_query.answer("❌ Bolne ke liye kuch nahi mila.", show_alert=True)
-        return
-
+    if not text_to_speak: return
+    
     try:
         audio_path = await voice_engine.text_to_speech(text_to_speak)
-        
         if audio_path:
-            await client.send_voice(
-                chat_id=callback_query.message.chat.id,
-                voice=audio_path,
-                caption="🤖 **Audio Reply**"
-            )
-            # File bhejne ke baad delete kar do server se
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
-        else:
-            await callback_query.answer("❌ Audio fail ho gaya.", show_alert=True)
-            
+            await client.send_voice(chat_id=callback_query.message.chat.id, voice=audio_path)
+            if os.path.exists(audio_path): os.remove(audio_path)
     except Exception as e:
-        logger.error(f"TTS Callback Error: {e}")
-        await callback_query.answer("❌ Error aa gaya.", show_alert=True)
+        logger.error(f"TTS Button Error: {e}")
+        await callback_query.answer("❌ Audio Error.", show_alert=True)
 
 # --- 🎤 VOICE MESSAGE HANDLER ---
 
 @app.on_message(filters.voice)
-async def voice_handler(client, message):
-    msg = await message.reply("🎤 Sun raha hu...")
+async def voice_message_handler(client, message):
+    msg = await message.reply("🎤 Sun raha hu, thoda sabr karo...")
     try:
         file_path = await message.download()
         text_response = await voice_engine.voice_to_text_and_reply(file_path)
         
-        speaker_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
-        
-        await msg.edit_text(f"🤖: {text_response}", reply_markup=speaker_btn)
+        await msg.edit_text(
+            f"🤖 **Dev Says:**\n{text_response}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
+        )
         await log_conversation(client, message, f"Voice Reply: {text_response}")
-        
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if os.path.exists(file_path): os.remove(file_path)
     except Exception as e:
-        logger.error(f"Voice Handler Error: {e}")
+        logger.error(f"Voice Processor Error: {e}")
         await msg.edit_text("❌ Awaz samajh nahi aayi.")
 
 # --- 🚀 STARTUP SEQUENCE ---
@@ -287,29 +243,28 @@ async def main():
     # 1. Print Logo in Console
     print(LOGO)
     
-    # 2. Start Web Server (For Koyeb Health Check)
+    # 2. Start Koyeb Health Check Server
     try:
         await start_server()
     except Exception as e:
-        logger.warning(f"Server Error (Ignored): {e}")
+        logger.warning(f"Server Startup Warning: {e}")
     
-    logger.info("🚀 Raj Bot is Starting...")
+    logger.info("🚀 Raj Bot (Advanced Version) is starting...")
     
     # 3. Start Bot Client
     await app.start()
     
-    # 4. Send Online Notification to Log Channel
+    # 4. Notify Log Channel
     if Config.LOG_CHANNEL_ID:
         try:
-            # Code block ``` use kiya taaki logo format na bigde
             await app.send_message(
                 Config.LOG_CHANNEL_ID,
-                f"✅ **Bot Online! All Systems Normal.**\n\n```\n{LOGO}\n```"
+                f"✅ **Core Activated | Version 2.0**\n\n```\n{LOGO}\n```"
             )
         except Exception as e:
-            logger.warning(f"Startup Log Failed: {e}")
+            logger.warning(f"Initial Log Channel Notification Failed: {e}")
     
-    # 5. Keep Bot Running
+    # 5. Keep running
     await idle()
     await app.stop()
 
