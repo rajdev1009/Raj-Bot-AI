@@ -1,66 +1,41 @@
-import google.generativeai as genai
-from config import Config
-from utils.logger import logger
-import json
+import random
+import aiohttp
 import os
+from utils.logger import logger
 
-# API Key Check
-if Config.GEMINI_API_KEY:
-    genai.configure(api_key=Config.GEMINI_API_KEY)
-
-class AIEngine:
+class ImageEngine:
     def __init__(self):
-        self.responses = {}
-        try:
-            with open("data/responses.json", "r", encoding="utf-8") as f:
-                self.responses = json.load(f)
-        except Exception as e:
-            logger.error(f"JSON Load Error: {e}")
+        self.api_url = "https://image.pollinations.ai/prompt/"
 
-        self.system_prompt = (
-            "You are Dev, a helpful and friendly AI assistant of Raj Dev. "
-            "You speak in Hinglish. Keep answers short and natural."
-        )
-        self.model = self.initialize_model()
-
-    def initialize_model(self):
-        try:
-            return genai.GenerativeModel(model_name="gemini-2.5-flash", system_instruction=self.system_prompt)
-        except:
-            return genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=self.system_prompt)
-
-    async def get_response(self, user_id, text):
-        try:
-            if not Config.GEMINI_API_KEY: return "API Key Missing."
-            response = await self.model.generate_content_async(text)
-            return response.text.strip()
-        except Exception as e:
-            logger.error(f"AI Error: {e}")
-            return None
-
-    def get_json_reply(self, text):
+    async def generate_image(self, prompt):
         """
-        Smart JSON Reply:
-        Sirf tab jawab dega jab message chota ho (Greeting type).
-        Lambe questions ko ignore karega taaki DB/AI jawab de sake.
+        Pollinations AI se image generate karke download karta hai.
+        Returns: Local file path
         """
-        text = text.lower().strip()
-        
-        # 🔒 LOCK: Agar message 4 words se bada hai, to JSON check mat karo.
-        # Example: "Hi" (OK), "Dev help me please" (Ignored by JSON)
-        if len(text.split()) > 4:
-            return None
-
-        # Direct Match
-        if text in self.responses:
-            import random
-            return random.choice(self.responses[text])
+        try:
+            if not prompt: return None
             
-        # Keyword Match
-        for key, replies in self.responses.items():
-            if key in text:
-                import random
-                return random.choice(replies)
-        return None
+            seed = random.randint(1, 999999)
+            # Prompt ko URL safe banao
+            clean_prompt = prompt.strip().replace(" ", "%20")
+            final_url = f"{self.api_url}{clean_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
+            
+            image_name = f"raj_ai_{seed}.jpg"
 
-ai_engine = AIEngine()
+            logger.info(f"🎨 Generating Image for: {prompt}")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(final_url, timeout=30) as resp:
+                    if resp.status == 200:
+                        content = await resp.read()
+                        with open(image_name, "wb") as f:
+                            f.write(content)
+                        return image_name
+                    else:
+                        logger.error(f"❌ Image API Error Status: {resp.status}")
+                        return None
+        except Exception as e:
+            logger.error(f"❌ Image Engine Crash: {e}")
+            return None
+
+image_engine = ImageEngine()
