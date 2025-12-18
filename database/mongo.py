@@ -2,10 +2,10 @@ import motor.motor_asyncio
 from config import Config
 from datetime import datetime
 from utils.logger import logger
+import asyncio
 
 class Database:
     def __init__(self):
-        # Database connection setup
         self.client = motor.motor_asyncio.AsyncIOMotorClient(Config.MONGO_URI)
         self.db = self.client["RajDev_Bot"]
         self.users = self.db["users"]
@@ -13,9 +13,8 @@ class Database:
         logger.info("🗄️ MongoDB Connection Initialized!")
 
     async def setup_indexes(self):
-        """Ye function 7 din purani memory saaf karne ke liye hai"""
         try:
-            # 604800 seconds = 7 days
+            # 7-day cleanup index
             await self.responses.create_index("date", expireAfterSeconds=604800)
             logger.info("✅ 7-Day Auto-Cleanup Index Verified!")
         except Exception as e:
@@ -25,16 +24,13 @@ class Database:
         user = await self.users.find_one({"_id": user_id})
         if not user:
             await self.users.insert_one({
-                "_id": user_id,
-                "first_name": first_name,
-                "username": username,
-                "date": datetime.now()
+                "_id": user_id, "first_name": first_name, "username": username, "date": datetime.now()
             })
 
     async def get_stats(self):
-        u_count = await self.users.count_documents({})
-        m_count = await self.responses.count_documents({})
-        return u_count, m_count
+        u = await self.users.count_documents({})
+        m = await self.responses.count_documents({})
+        return u, m
 
     async def get_cached_response(self, query):
         if not query: return None
@@ -46,9 +42,7 @@ class Database:
         query = query.lower().strip()
         await self.responses.delete_many({"query": query})
         await self.responses.insert_one({
-            "query": query,
-            "response": response,
-            "date": datetime.now()
+            "query": query, "response": response, "date": datetime.now()
         })
 
 db = Database()
