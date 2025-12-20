@@ -3,19 +3,18 @@ import os
 import fitz  # PyMuPDF
 from pyrogram import Client, filters, idle
 from pyrogram.enums import ChatAction, ChatType
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
 from database.mongo import db
 from core.ai_engine import ai_engine
 from core.voice_engine import voice_engine
 from core.image_engine import image_engine
 from core.web_search import search_web
-from core.broadcast import broadcast_message
 from core.security import Security
 from utils.logger import logger
 from utils.server import start_server
 
-# --- 🎨 STARTUP LOGO (Advanced Alignment) ---
+# --- 🎨 LOGO ---
 LOGO = r"""
 _________________________________________________________________________
     
@@ -40,136 +39,90 @@ app = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-# --- 🎚️ GLOBAL SETTINGS ---
+# --- 🎚️ SETTINGS ---
 SETTINGS = {
     "group_auto_reply": False
 }
 
-# --- 📝 LOGGING SYSTEM ---
-async def log_conversation(client, message, bot_reply):
-    try:
-        if not message.from_user: return
-        user = message.from_user
-        chat_text = message.text or "[Media/File]"
-        chat_type = "Private" if message.chat.type == ChatType.PRIVATE else "Group"
-        
-        logger.info(f"📩 [{chat_type}] {user.first_name}: {chat_text}")
-        
-        if Config.LOG_CHANNEL_ID:
-            log_text = (
-                f"**#RajLog** 📝\n\n"
-                f"👤 **User:** {user.mention}\n"
-                f"📥 **Message:** {chat_text}\n"
-                f"🤖 **Dev Reply:** {bot_reply}"
-            )
-            try: await client.send_message(Config.LOG_CHANNEL_ID, log_text)
-            except: pass
-    except: pass
+# --- 🛠️ HELPER: Long Message Splitter ---
+async def send_split_text(client, chat_id, text, reply_markup=None):
+    """Agar message 4096 chars se bada hai to tukdon me bhejo"""
+    if len(text) < 4000:
+        await client.send_message(chat_id, text, reply_markup=reply_markup)
+    else:
+        # Split logic
+        chunk_size = 4000
+        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        for i, chunk in enumerate(chunks):
+            # Sirf last chunk pe button lagao
+            markup = reply_markup if i == len(chunks) - 1 else None
+            await client.send_message(chat_id, chunk, reply_markup=markup)
 
-# --- 🎮 COMMAND HANDLERS ---
+# --- 🎮 COMMANDS ---
 
-@app.on_message(filters.command("stats") & filters.user(Config.ADMIN_ID))
-async def stats_handler(client, message):
-    u_count, m_count = await db.get_stats()
-    await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Raj LLM MODEL.")
-
-# 👇 UPDATED: Personality Changer Logic (Ab ye sahi kaam karega)
 @app.on_message(filters.command(["personality", "role"]))
 async def personality_handler(client, message):
-    # Check if user provided a mode name
     if len(message.command) < 2:
-        return await message.reply(
-            "❌ **Ghalat Tareeka!**\n\n"
-            "Aise use karo:\n"
-            "`/personality dev` (Gali wala)\n"
-            "`/personality hacker` (Hacking wala)\n"
-            "`/personality friend` (Dost wala)\n"
-            "`/personality teacher` (Padhai wala)"
-        )
+        return await message.reply("Usage: `/personality hacker` | `dev` | `friend`")
     
     mode = message.command[1].lower()
-    
-    # Try changing mode via AI Engine
     try:
-        status_msg = ai_engine.change_mode(mode)
-        await message.reply(f"⚙️ **System Update:**\n{status_msg}")
-    except AttributeError:
-        # Fallback agar purana ai_engine.py use ho raha ho
-        ai_engine.personality = mode
-        ai_engine.setup_next_key()
-        await message.reply(f"✅ Dev ki personality manually set hui: **{mode.upper()}**")
+        msg = ai_engine.change_mode(mode)
+        await message.reply(f"⚙️ **System Update:**\n{msg}")
+    except:
+        await message.reply("❌ Error changing mode.")
 
-@app.on_message(filters.command("search"))
-async def search_handler(client, message):
-    if len(message.command) < 2:
-        return await message.reply("Batao kya search karna hai?")
-    query = message.text.split(None, 1)[1]
-    wait_msg = await message.reply("🔍 Internet par dhoond raha hu...")
-    
-    web_data = await search_web(query)
-    if web_data:
-        res = await ai_engine.get_response(message.from_user.id, f"Summarize this web search for the user: {query}\n\nWeb Data:\n{web_data}")
-        await wait_msg.edit(f"✨ **Web Results:**\n\n{res}")
-    else:
-        await wait_msg.edit("❌ Kuch nahi mila.")
-
-# 👇 UPDATED: Group Mode Switch (Naam conflict na ho isliye alag rakha hai)
-@app.on_message(filters.command("groupmode") & filters.user(Config.ADMIN_ID))
-async def mode_switch(client, message):
+@app.on_message(filters.command("mode"))
+async def group_mode_switch(client, message):
+    """Group me auto-reply ON/OFF karne ke liye"""
     if len(message.command) < 2:
         status = "ON" if SETTINGS["group_auto_reply"] else "OFF"
-        return await message.reply(f"Current Group Reply Mode: {status}")
+        return await message.reply(f"📢 Current Group Mode: **{status}**")
+    
     action = message.command[1].lower()
-    if action == "on": SETTINGS["group_auto_reply"] = True; await message.reply("✅ Group Mode: ON")
-    elif action == "off": SETTINGS["group_auto_reply"] = False; await message.reply("❌ Group Mode: OFF")
-
-@app.on_message(filters.command("start"))
-async def start_cmd(client, message):
-    if not message.from_user: return
-    await db.add_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
-    await message.reply_text(f"**Namaste {message.from_user.first_name}!** 🙏\nMain Raj ka Assistant hu (Dev). Main **RAJ-LLM-MODEL** use karta hu. Padhai mein help chahiye toh puchna!")
+    if action in ["on", "enable"]:
+        SETTINGS["group_auto_reply"] = True
+        await message.reply("✅ Group Mode: **ON** (Ab main group me sabse baat karunga)")
+    elif action in ["off", "disable", "of"]: # 'of' typo fix
+        SETTINGS["group_auto_reply"] = False
+        await message.reply("❌ Group Mode: **OFF** (Ab sirf 'Dev' bolne par reply karunga)")
 
 @app.on_message(filters.command(["img", "image"]))
 async def img_cmd(client, message):
-    if len(message.command) < 2: return await message.reply("Prompt likho!")
+    if len(message.command) < 2: return await message.reply("Likho kaisa image chahiye. Ex: `/img Iron Man`")
     prompt = message.text.split(None, 1)[1]
-    wait = await message.reply("🎨 Painting ban rahi hai...")
-    path = await image_engine.generate_image(prompt)
-    if path:
-        await message.reply_photo(path, caption=f"Prompt: {prompt}")
-        if os.path.exists(path): os.remove(path)
-    else: await message.reply("Nahi ban payi.")
+    wait = await message.reply("🎨 Painting bana raha hu... (Wait)")
+    try:
+        path = await image_engine.generate_image(prompt)
+        if path:
+            await message.reply_photo(path, caption=f"Prompt: {prompt}")
+            if os.path.exists(path): os.remove(path)
+        else:
+            await message.reply("❌ Server busy hai, image nahi ban payi.")
+    except Exception as e:
+        await message.reply(f"Error: {e}")
     await wait.delete()
 
-# --- 📁 FILE HANDLERS (Vision & PDF) ---
+@app.on_message(filters.command("start"))
+async def start_cmd(client, message):
+    await db.add_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
+    await message.reply_text(f"👋 Namaste **{message.from_user.first_name}**!\n\nMain **Raj Dev** ka AI Assistant hu.\n\nCommands:\n`/img [text]` - Photo banao\n`/personality hacker` - Mode badlo\n`/mode on` - Group reply on")
 
-@app.on_message(filters.photo)
+# --- 📁 FILES & VISION ---
+
+@app.on_message(filters.photo & filters.private)
 async def vision_handler(client, message):
-    wait = await message.reply("📸 Photo dekh raha hu ...")
+    wait = await message.reply("👀 Dekh raha hu...")
     path = await message.download()
-    prompt = message.caption or "Is photo ko samjhao"
+    prompt = message.caption or "Is photo me kya hai?"
     res = await ai_engine.get_response(message.from_user.id, prompt, photo_path=path)
-    await wait.edit(res)
+    await wait.delete()
+    await send_split_text(client, message.chat.id, res)
     if os.path.exists(path): os.remove(path)
 
-@app.on_message(filters.document)
-async def pdf_handler(client, message):
-    if message.document.mime_type == "application/pdf":
-        wait = await message.reply("📄 PDF file padh raha hu...")
-        path = await message.download()
-        try:
-            doc = fitz.open(path)
-            content = ""
-            for page in doc: content += page.get_text()
-            doc.close()
-            res = await ai_engine.get_response(message.from_user.id, f"Summarize this PDF content for a student: {content[:4000]}")
-            await wait.edit(f"📝 **PDF Summary:**\n\n{res}")
-        except: await wait.edit("PDF padhne mein error aaya.")
-        if os.path.exists(path): os.remove(path)
+# --- 🧠 MAIN CHAT LOGIC (JSON + AI Mixed) ---
 
-# --- 🧠 MAIN CHAT LOGIC ---
-
-@app.on_message(filters.text & ~filters.command(["start", "img", "search", "stats", "personality", "role", "groupmode"]))
+@app.on_message(filters.text & ~filters.command(["start", "img", "search", "mode", "personality"]))
 async def chat_handler(client, message):
     if not message.from_user: return
     user_id = message.from_user.id
@@ -177,9 +130,10 @@ async def chat_handler(client, message):
     text_lower = text.lower()
     is_pvt = message.chat.type == ChatType.PRIVATE
     
+    # Button for audio
     spk_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
 
-    # 1. SECURITY (Private)
+    # 1. SECURITY CHECK (Private only)
     if is_pvt and text_lower == "raj":
         if not Security.is_waiting(user_id): return await message.reply(Security.initiate_auth(user_id))
     if is_pvt and Security.is_waiting(user_id):
@@ -188,52 +142,89 @@ async def chat_handler(client, message):
         else: await message.reply(res)
         return
 
-    # 🧹 Clean Text
+    # 🧹 'Dev' keyword hatao processing ke liye
     clean_text = text_lower.replace("dev", "").strip()
 
-    # 2. DATABASE MEMORY (Priority 1)
-    ans = await db.get_cached_response(clean_text)
-    if ans:
-        await message.reply(ans, reply_markup=spk_btn)
-        return
+    # 2. JSON REPLY (Sabse Pehle Check Hoga!) ⚡
+    # Agar simple hello/hi hai to AI use mat karo, JSON se reply do (Fast)
+    json_reply = ai_engine.get_json_reply(text)
+    
+    # Logic: Agar JSON reply mila AND (user ne specific sawal nahi pucha)
+    if json_reply and len(text.split()) < 5: 
+        await message.reply(json_reply)
+        return # Yahin ruk jao, AI ko mat bulao
 
-    # 3. AI ENGINE (Priority 2 - Strict Gemini 2.5)
-    # Note: Ab 'Dev' likhne ki zaroorat nahi agar private chat hai, warna group me 'dev' likhna padega
-    if is_pvt or "dev" in text_lower or message.reply_to_message:
+    # 3. AI ENGINE (Agar JSON me jawab nahi mila ya sentence bada hai)
+    # Trigger: Private chat hai YA message me "dev" likha hai YA Group Mode ON hai
+    should_reply = is_pvt or ("dev" in text_lower) or (SETTINGS["group_auto_reply"] and not message.service)
+    
+    if should_reply:
         await client.send_chat_action(message.chat.id, ChatAction.TYPING)
+        
+        # Memory Check
+        cached_res = await db.get_cached_response(clean_text)
+        if cached_res:
+            await send_split_text(client, message.chat.id, cached_res, reply_markup=spk_btn)
+            return
+
+        # Fetch from Gemini
         ai_res = await ai_engine.get_response(user_id, text)
+        
         if ai_res:
-            await db.add_response(clean_text, ai_res) # Save to memory
-            await message.reply(ai_res, reply_markup=spk_btn)
-            await log_conversation(client, message, ai_res)
-        return
+            await db.add_response(clean_text, ai_res) # Save logic
+            # 👇 Yahan SPLIT function use kiya hai taaki lamba message error na de
+            await send_split_text(client, message.chat.id, ai_res, reply_markup=spk_btn)
+            
+            # Logger
+            chat_type = "Private" if is_pvt else "Group"
+            logger.info(f"🤖 AI Reply to {message.from_user.first_name} ({chat_type})")
 
-    # 4. JSON
-    if is_pvt or SETTINGS["group_auto_reply"]:
-        j_res = ai_engine.get_json_reply(text)
-        if j_res: await message.reply(j_res)
-
-# --- 🔊 OTHER HANDLERS ---
+# --- 🔊 AUDIO HANDLERS ---
 
 @app.on_callback_query(filters.regex("speak_msg"))
 async def speak_cb(client, query):
-    t = query.message.text or query.message.caption
-    p = await voice_engine.text_to_speech(t)
-    if p: await client.send_voice(query.message.chat.id, p); os.remove(p)
+    await query.answer("🔊 Processing audio...")
+    # Message ka text uthao
+    text_to_speak = query.message.text or query.message.caption
+    if not text_to_speak: return
+    
+    # Sirf pehle 200 words bolo (Taki bot hang na ho)
+    short_text = text_to_speak[:1000] 
+    
+    audio_path = await voice_engine.text_to_speech(short_text)
+    if audio_path:
+        await client.send_voice(query.message.chat.id, audio_path)
+        os.remove(audio_path)
+    else:
+        await query.message.reply("❌ Audio generation failed.")
 
 @app.on_message(filters.voice)
-async def voice_msg(client, message):
-    m = await message.reply("🎤 Sun raha hu...")
-    p = await message.download()
-    t = await voice_engine.voice_to_text_and_reply(p)
-    await m.edit(f"🤖: {t}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]]))
-    if os.path.exists(p): os.remove(p)
+async def voice_msg_handler(client, message):
+    wait = await message.reply("🎤 Sun raha hu...")
+    voice_path = await message.download()
+    
+    # 1. Voice to Text
+    text = await voice_engine.voice_to_text_and_reply(voice_path)
+    if not text:
+        await wait.edit("❌ Samajh nahi aaya.")
+        return
 
+    # 2. Get AI Response
+    ai_res = await ai_engine.get_response(message.from_user.id, text)
+    
+    # 3. Reply (Text + Button)
+    spk_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
+    await wait.delete()
+    await send_split_text(client, message.chat.id, f"🎤 **Tumne kaha:** {text}\n\n🤖 **Jawab:**\n{ai_res}", reply_markup=spk_btn)
+    
+    if os.path.exists(voice_path): os.remove(voice_path)
+
+# --- SERVER START ---
 async def main():
     print(LOGO)
     await start_server()
     await app.start()
-    logger.info("🚀 RAJ DEV MEGA BOT (STRICT 2.5 FLASH) ONLINE!")
+    logger.info("🚀 RAJ DEV MEGA BOT (ALL SYSTEMS FIXED) ONLINE!")
     await idle()
 
 if __name__ == "__main__":
