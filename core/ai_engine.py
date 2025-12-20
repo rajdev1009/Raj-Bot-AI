@@ -48,7 +48,7 @@ class AIEngine:
         # Note: 'gemini-2.5-flash' abhi release nahi hua hai, isliye 1.5 use kiya hai.
         try:
             self.model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash", 
+                model_name="gemini-2.5-flash", 
                 system_instruction=self.get_instruction()
             )
             logger.info(f"🔑 Switched to Gemini API using Key Index: {self.current_key_index % len(self.keys)}")
