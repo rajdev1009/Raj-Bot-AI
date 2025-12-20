@@ -73,7 +73,36 @@ async def stats_handler(client, message):
     u_count, m_count = await db.get_stats()
     await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Raj LLM MODEL.")
 
-# 👇 YAHAN CHANGE KIYA HAI: Personality Command Fix
+# --- 🗑️ DELETE DATABASE COMMAND (ADDED HERE) ---
+@app.on_message(filters.command("cleardb") & filters.user(Config.ADMIN_ID))
+async def clear_database(client, message):
+    # 1. Confirmation Message
+    msg = await message.reply("⚠️ **WARNING:** Main poora database uda raha hu (Users + Memory)...\n\nProcessing... ⏳")
+    
+    try:
+        # 2. Direct Connection bana kar sab uda denge
+        import motor.motor_asyncio
+        temp_client = motor.motor_asyncio.AsyncIOMotorClient(Config.MONGO_URL)
+        temp_db = temp_client.get_default_database()
+        
+        # 3. Saare Collections (Tables) ki list lo aur uda do
+        collections = await temp_db.list_collection_names()
+        
+        if not collections:
+            await msg.edit("✅ Database pehle se hi khali hai bhai!")
+            return
+
+        deleted_names = []
+        for col_name in collections:
+            await temp_db[col_name].drop() # Collection Drop (Delete)
+            deleted_names.append(col_name)
+        
+        # 4. Success Message
+        await msg.edit(f"✅ **Mission Successful!**\n\n🗑️ Ye collections delete ho gaye:\n`{', '.join(deleted_names)}`\n\nAb bot ekdum naya ho gaya hai.")
+        
+    except Exception as e:
+        await msg.edit(f"❌ Error aaya: {e}")
+
 @app.on_message(filters.command(["personality", "role"]))
 async def personality_handler(client, message):
     if len(message.command) < 2:
@@ -160,7 +189,7 @@ async def pdf_handler(client, message):
 
 # --- 🧠 MAIN CHAT LOGIC ---
 
-@app.on_message(filters.text & ~filters.command(["start", "img", "search", "stats", "personality", "mode"]))
+@app.on_message(filters.text & ~filters.command(["start", "img", "search", "stats", "personality", "mode", "cleardb"]))
 async def chat_handler(client, message):
     if not message.from_user: return
     user_id = message.from_user.id
@@ -229,4 +258,4 @@ async def main():
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
-    
+        
