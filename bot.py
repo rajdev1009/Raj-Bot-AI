@@ -73,14 +73,31 @@ async def stats_handler(client, message):
     u_count, m_count = await db.get_stats()
     await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Raj LLM MODEL.")
 
-@app.on_message(filters.command("personality") & filters.user(Config.ADMIN_ID))
+# 👇 UPDATED: Personality Changer Logic (Ab ye sahi kaam karega)
+@app.on_message(filters.command(["personality", "role"]))
 async def personality_handler(client, message):
+    # Check if user provided a mode name
     if len(message.command) < 2:
-        return await message.reply("Usage: `/personality friend | teacher | funny` ")
+        return await message.reply(
+            "❌ **Ghalat Tareeka!**\n\n"
+            "Aise use karo:\n"
+            "`/personality dev` (Gali wala)\n"
+            "`/personality hacker` (Hacking wala)\n"
+            "`/personality friend` (Dost wala)\n"
+            "`/personality teacher` (Padhai wala)"
+        )
+    
     mode = message.command[1].lower()
-    ai_engine.personality = mode
-    ai_engine.setup_next_key() # Reset Gemini with new personality
-    await message.reply(f"✅ Dev ki personality ab **{mode.upper()}** ho gayi hai!")
+    
+    # Try changing mode via AI Engine
+    try:
+        status_msg = ai_engine.change_mode(mode)
+        await message.reply(f"⚙️ **System Update:**\n{status_msg}")
+    except AttributeError:
+        # Fallback agar purana ai_engine.py use ho raha ho
+        ai_engine.personality = mode
+        ai_engine.setup_next_key()
+        await message.reply(f"✅ Dev ki personality manually set hui: **{mode.upper()}**")
 
 @app.on_message(filters.command("search"))
 async def search_handler(client, message):
@@ -96,14 +113,15 @@ async def search_handler(client, message):
     else:
         await wait_msg.edit("❌ Kuch nahi mila.")
 
-@app.on_message(filters.command("mode") & filters.user(Config.ADMIN_ID))
+# 👇 UPDATED: Group Mode Switch (Naam conflict na ho isliye alag rakha hai)
+@app.on_message(filters.command("groupmode") & filters.user(Config.ADMIN_ID))
 async def mode_switch(client, message):
     if len(message.command) < 2:
         status = "ON" if SETTINGS["group_auto_reply"] else "OFF"
-        return await message.reply(f"Current Group Mode: {status}")
+        return await message.reply(f"Current Group Reply Mode: {status}")
     action = message.command[1].lower()
-    if action == "on": SETTINGS["group_auto_reply"] = True; await message.reply("Group Mode: ON")
-    elif action == "off": SETTINGS["group_auto_reply"] = False; await message.reply("Group Mode: OFF")
+    if action == "on": SETTINGS["group_auto_reply"] = True; await message.reply("✅ Group Mode: ON")
+    elif action == "off": SETTINGS["group_auto_reply"] = False; await message.reply("❌ Group Mode: OFF")
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client, message):
@@ -151,7 +169,7 @@ async def pdf_handler(client, message):
 
 # --- 🧠 MAIN CHAT LOGIC ---
 
-@app.on_message(filters.text & ~filters.command(["start", "img", "search", "stats", "personality", "mode"]))
+@app.on_message(filters.text & ~filters.command(["start", "img", "search", "stats", "personality", "role", "groupmode"]))
 async def chat_handler(client, message):
     if not message.from_user: return
     user_id = message.from_user.id
@@ -180,7 +198,8 @@ async def chat_handler(client, message):
         return
 
     # 3. AI ENGINE (Priority 2 - Strict Gemini 2.5)
-    if "dev" in text_lower:
+    # Note: Ab 'Dev' likhne ki zaroorat nahi agar private chat hai, warna group me 'dev' likhna padega
+    if is_pvt or "dev" in text_lower or message.reply_to_message:
         await client.send_chat_action(message.chat.id, ChatAction.TYPING)
         ai_res = await ai_engine.get_response(user_id, text)
         if ai_res:
