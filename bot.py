@@ -15,7 +15,7 @@ from core.security import Security
 from utils.logger import logger
 from utils.server import start_server
 
-# --- 🎨 STARTUP LOGO (Advanced Alignment) ---
+# --- 🎨 STARTUP LOGO ---
 LOGO = r"""
 _________________________________________________________________________
     
@@ -45,6 +45,17 @@ SETTINGS = {
     "group_auto_reply": False
 }
 
+# --- 🛠️ HELPER: Long Message Splitter ---
+async def send_split_text(client, chat_id, text, reply_markup=None):
+    if len(text) < 4000:
+        await client.send_message(chat_id, text, reply_markup=reply_markup)
+    else:
+        chunk_size = 4000
+        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        for i, chunk in enumerate(chunks):
+            markup = reply_markup if i == len(chunks) - 1 else None
+            await client.send_message(chat_id, chunk, reply_markup=markup)
+
 # --- 📝 LOGGING SYSTEM ---
 async def log_conversation(client, message, bot_reply):
     try:
@@ -73,19 +84,26 @@ async def stats_handler(client, message):
     u_count, m_count = await db.get_stats()
     await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Raj LLM MODEL.")
 
-# --- 🗑️ DELETE DATABASE COMMAND (ADDED HERE) ---
+# --- 🗑️ DELETE DATABASE COMMAND (FIXED ERROR) ---
 @app.on_message(filters.command("cleardb") & filters.user(Config.ADMIN_ID))
 async def clear_database(client, message):
-    # 1. Confirmation Message
     msg = await message.reply("⚠️ **WARNING:** Main poora database uda raha hu (Users + Memory)...\n\nProcessing... ⏳")
     
     try:
-        # 2. Direct Connection bana kar sab uda denge
+        # 1. Correct Variable Name Check (URI or URL)
+        # Ye check karega ki config me naam MONGO_URI hai ya MONGO_URL
+        mongo_conn_url = getattr(Config, "MONGO_URI", getattr(Config, "MONGO_URL", None))
+        
+        if not mongo_conn_url:
+            await msg.edit("❌ Error: `config.py` mein `MONGO_URI` nahi mila!")
+            return
+
+        # 2. Direct Connection
         import motor.motor_asyncio
-        temp_client = motor.motor_asyncio.AsyncIOMotorClient(Config.MONGO_URL)
+        temp_client = motor.motor_asyncio.AsyncIOMotorClient(mongo_conn_url)
         temp_db = temp_client.get_default_database()
         
-        # 3. Saare Collections (Tables) ki list lo aur uda do
+        # 3. List and Delete
         collections = await temp_db.list_collection_names()
         
         if not collections:
@@ -94,10 +112,10 @@ async def clear_database(client, message):
 
         deleted_names = []
         for col_name in collections:
-            await temp_db[col_name].drop() # Collection Drop (Delete)
+            await temp_db[col_name].drop()
             deleted_names.append(col_name)
         
-        # 4. Success Message
+        # 4. Success
         await msg.edit(f"✅ **Mission Successful!**\n\n🗑️ Ye collections delete ho gaye:\n`{', '.join(deleted_names)}`\n\nAb bot ekdum naya ho gaya hai.")
         
     except Exception as e:
@@ -111,11 +129,9 @@ async def personality_handler(client, message):
     mode = message.command[1].lower()
     
     try:
-        # Naya method use kar rahe hain jo humne ai_engine.py mein banaya tha
         msg = ai_engine.change_mode(mode)
         await message.reply(f"⚙️ **System Update:**\n{msg}")
     except:
-        # Fallback agar engine update nahi hua ho
         ai_engine.personality = mode
         ai_engine.setup_next_key()
         await message.reply(f"✅ Dev ki personality manually set hui: **{mode.upper()}**")
@@ -140,8 +156,8 @@ async def mode_switch(client, message):
         status = "ON" if SETTINGS["group_auto_reply"] else "OFF"
         return await message.reply(f"Current Group Mode: {status}")
     action = message.command[1].lower()
-    if action == "on": SETTINGS["group_auto_reply"] = True; await message.reply("Group Mode: ON")
-    elif action == "off": SETTINGS["group_auto_reply"] = False; await message.reply("Group Mode: OFF")
+    if action == "on": SETTINGS["group_auto_reply"] = True; await message.reply("✅ Group Mode: ON")
+    elif action == "off": SETTINGS["group_auto_reply"] = False; await message.reply("❌ Group Mode: OFF")
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client, message):
@@ -169,7 +185,8 @@ async def vision_handler(client, message):
     path = await message.download()
     prompt = message.caption or "Is photo ko samjhao"
     res = await ai_engine.get_response(message.from_user.id, prompt, photo_path=path)
-    await wait.edit(res)
+    await wait.delete()
+    await send_split_text(client, message.chat.id, res)
     if os.path.exists(path): os.remove(path)
 
 @app.on_message(filters.document)
@@ -217,13 +234,13 @@ async def chat_handler(client, message):
         await message.reply(ans, reply_markup=spk_btn)
         return
 
-    # 3. AI ENGINE (Priority 2 - Strict Gemini 2.5)
+    # 3. AI ENGINE (Priority 2)
     if "dev" in text_lower:
         await client.send_chat_action(message.chat.id, ChatAction.TYPING)
         ai_res = await ai_engine.get_response(user_id, text)
         if ai_res:
-            await db.add_response(clean_text, ai_res) # Save to memory
-            await message.reply(ai_res, reply_markup=spk_btn)
+            await db.add_response(clean_text, ai_res) 
+            await send_split_text(client, message.chat.id, ai_res, reply_markup=spk_btn)
             await log_conversation(client, message, ai_res)
         return
 
@@ -237,7 +254,8 @@ async def chat_handler(client, message):
 @app.on_callback_query(filters.regex("speak_msg"))
 async def speak_cb(client, query):
     t = query.message.text or query.message.caption
-    p = await voice_engine.text_to_speech(t)
+    if not t: return
+    p = await voice_engine.text_to_speech(t[:1000])
     if p: await client.send_voice(query.message.chat.id, p); os.remove(p)
 
 @app.on_message(filters.voice)
@@ -245,7 +263,10 @@ async def voice_msg(client, message):
     m = await message.reply("🎤 Sun raha hu...")
     p = await message.download()
     t = await voice_engine.voice_to_text_and_reply(p)
-    await m.edit(f"🤖: {t}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]]))
+    ai_res = await ai_engine.get_response(message.from_user.id, t)
+    await m.delete()
+    spk_btn = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 Suno", callback_data="speak_msg")]])
+    await send_split_text(client, message.chat.id, f"🎤 **Tumne kaha:** {t}\n\n🤖 **Jawab:**\n{ai_res}", reply_markup=spk_btn)
     if os.path.exists(p): os.remove(p)
 
 async def main():
@@ -258,4 +279,4 @@ async def main():
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
-        
+    
