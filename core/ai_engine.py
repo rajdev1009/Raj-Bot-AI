@@ -1,7 +1,8 @@
 import google.generativeai as genai
 from config import Config
 from utils.logger import logger
-import json, random
+import json
+import random
 from PIL import Image
 
 class AIEngine:
@@ -9,9 +10,9 @@ class AIEngine:
         # 🔑 Multiple API Keys ki list
         self.keys = Config.GEMINI_API_KEYS
         self.current_key_index = 0
-        self.personality = "friend" # Default mood
+        self.personality = "friend"  # Default mood
         self.responses = {}
-        
+
         # 📂 Local JSON responses load karna
         try:
             with open("data/responses.json", "r", encoding="utf-8") as f:
@@ -19,7 +20,7 @@ class AIEngine:
         except Exception as e:
             logger.error(f"📂 JSON file missing or error: {e}")
 
-        # 🚀 Pehli key ke saath 2.5 Flash setup karo
+        # 🚀 Pehli key ke saath setup karo
         self.setup_next_key()
 
     def get_instruction(self):
@@ -27,9 +28,9 @@ class AIEngine:
         modes = {
             "friend": "You are Dev, Raj Dev's best friend from Lumding, Assam. Speak in casual Hinglish with emojis. Be very friendly.",
             "teacher": "You are Dev, a helpful and smart teacher. Explain concepts clearly for a student. Use Hinglish.",
-            "funny": "You are Dev, a roasting master. Be sarcastic, funny, and use cool Hinglish slangs."
-            "dev": "tum sirf Gali dati ho, tum maa ki gali deti ho,tum dev ho."
-            "hacker": "tum ek hacker ho aur sab kuch hack kar sakthi ho, you are 10 years experience hacker, your name dev."
+            "funny": "You are Dev, a roasting master. Be sarcastic, funny, and use cool Hinglish slangs.",
+            "dev": "You are Dev. You speak very roughly and strictly.",  # Fixed format
+            "hacker": "You are a cybersecurity expert named Dev. You explain technical hacking concepts for educational purposes." # Fixed format
         }
         return modes.get(self.personality, modes["friend"])
 
@@ -42,15 +43,18 @@ class AIEngine:
         # Next key select karo
         active_key = self.keys[self.current_key_index % len(self.keys)]
         genai.configure(api_key=active_key)
-        
-        # --- ⚡ 2025 LATEST MODEL: GEMINI 2.5 FLASH ---
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash", 
-            system_instruction=self.get_instruction()
-        )
-        
-        logger.info(f"🔑 Switched to Gemini 2.5 Flash using Key Index: {self.current_key_index % len(self.keys)}")
-        self.current_key_index += 1
+
+        # --- ⚡ MODEL SETUP (Using 1.5 Flash for stability) ---
+        # Note: 'gemini-2.5-flash' abhi release nahi hua hai, isliye 1.5 use kiya hai.
+        try:
+            self.model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash", 
+                system_instruction=self.get_instruction()
+            )
+            logger.info(f"🔑 Switched to Gemini API using Key Index: {self.current_key_index % len(self.keys)}")
+            self.current_key_index += 1
+        except Exception as e:
+            logger.error(f"Error setting up model: {e}")
 
     async def get_response(self, user_id, text, photo_path=None):
         """AI se reply lene ka main function"""
@@ -58,14 +62,14 @@ class AIEngine:
         for _ in range(len(self.keys)):
             try:
                 if photo_path:
-                    # 📸 VISION LOGIC: Photo + Text dono 2.5 Flash handle karega
+                    # 📸 VISION LOGIC: Photo + Text dono handle karega
                     img = Image.open(photo_path)
                     content = [text or "Is photo ko dekho aur samjhao", img]
                     response = await self.model.generate_content_async(content)
                 else:
                     # 💬 CHAT LOGIC
                     response = await self.model.generate_content_async(text)
-                
+
                 return response.text.strip()
 
             except Exception as e:
@@ -73,20 +77,21 @@ class AIEngine:
                 if "429" in str(e) or "quota" in str(e).lower():
                     logger.warning("⚠️ Quota exhausted for current key. Rotating...")
                     self.setup_next_key()
-                    continue 
-                
+                    continue
+
                 logger.error(f"🤖 AI Error: {e}")
                 return f"Sorry bhai, ek technical error aaya hai: {e}"
-        
+
         return "❌ Boss, saari API keys ka daily quota khatam ho chuka hai!"
 
     def get_json_reply(self, text):
         """Chote-mote greetings ke liye fast JSON reply"""
+        if not text: return None
         text = text.lower().strip()
         # Agar bada sentence hai toh JSON skip karo, AI ko handle karne do
-        if len(text.split()) > 4: 
+        if len(text.split()) > 4:
             return None
-            
+
         for key, val in self.responses.items():
             if key in text:
                 return random.choice(val)
