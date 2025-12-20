@@ -9,7 +9,10 @@ class AIEngine:
         # 🔑 Multiple API Keys ki list
         self.keys = Config.GEMINI_API_KEYS
         self.current_key_index = 0
-        self.personality = "friend" # Default mood
+        
+        # 👇 Change: Default mood ab "dev" kar diya hai testing ke liye
+        self.personality = "dev" 
+        
         self.responses = {}
         
         # 📂 Local JSON responses load karna
@@ -19,7 +22,7 @@ class AIEngine:
         except Exception as e:
             logger.error(f"📂 JSON file missing or error: {e}")
 
-        # 🚀 Pehli key ke saath 2.5 Flash setup karo
+        # 🚀 Pehli key ke saath setup karo
         self.setup_next_key()
 
     def get_instruction(self):
@@ -28,6 +31,7 @@ class AIEngine:
             "friend": "You are Dev, Raj Dev's best friend from Lumding, Assam. Speak in casual Hinglish with emojis. Be very friendly.",
             "teacher": "You are Dev, a helpful and smart teacher. Explain concepts clearly for a student. Use Hinglish.",
             "funny": "You are Dev, a roasting master. Be sarcastic, funny, and use cool Hinglish slangs.",
+            # 👇 Comma fix kiya hai, text wahi hai jo tumne diya tha
             "dev": "tum sirf Gali dati ho, tum maa ki gali deti ho,tum dev ho.",
             "hacker": "tum ek hacker ho aur sab kuch hack kar sakthi ho, you are 10 years experience hacker, your name dev."
         }
@@ -43,14 +47,25 @@ class AIEngine:
         active_key = self.keys[self.current_key_index % len(self.keys)]
         genai.configure(api_key=active_key)
         
+        # 👇 Safety Settings: Taaki 'dev' mode mein gali block na ho (BLOCK_NONE)
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+
         # --- ⚡ 2025 LATEST MODEL: GEMINI 2.5 FLASH ---
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash", 
-            system_instruction=self.get_instruction()
-        )
-        
-        logger.info(f"🔑 Switched to Gemini 2.5 Flash using Key Index: {self.current_key_index % len(self.keys)}")
-        self.current_key_index += 1
+        try:
+            self.model = genai.GenerativeModel(
+                model_name="gemini-2.5-flash", 
+                system_instruction=self.get_instruction(),
+                safety_settings=safety_settings  # Settings yahan apply kiye
+            )
+            logger.info(f"🔑 Switched to Gemini 2.5 Flash using Key Index: {self.current_key_index % len(self.keys)}")
+            self.current_key_index += 1
+        except Exception as e:
+            logger.error(f"❌ Error initializing model: {e}")
 
     async def get_response(self, user_id, text, photo_path=None):
         """AI se reply lene ka main function"""
