@@ -84,14 +84,13 @@ async def stats_handler(client, message):
     u_count, m_count = await db.get_stats()
     await message.reply_text(f"📊 **Bot Statistics**\n\n👤 Total Users: {u_count}\n🧠 Saved Memories: {m_count}\n🤖 Raj LLM MODEL.")
 
-# --- 🗑️ DELETE DATABASE COMMAND (FIXED ERROR) ---
+# --- 🗑️ DELETE DATABASE COMMAND (FIXED: DB NAME SPECIFIED) ---
 @app.on_message(filters.command("cleardb") & filters.user(Config.ADMIN_ID))
 async def clear_database(client, message):
     msg = await message.reply("⚠️ **WARNING:** Main poora database uda raha hu (Users + Memory)...\n\nProcessing... ⏳")
     
     try:
-        # 1. Correct Variable Name Check (URI or URL)
-        # Ye check karega ki config me naam MONGO_URI hai ya MONGO_URL
+        # 1. Config Check
         mongo_conn_url = getattr(Config, "MONGO_URI", getattr(Config, "MONGO_URL", None))
         
         if not mongo_conn_url:
@@ -101,7 +100,9 @@ async def clear_database(client, message):
         # 2. Direct Connection
         import motor.motor_asyncio
         temp_client = motor.motor_asyncio.AsyncIOMotorClient(mongo_conn_url)
-        temp_db = temp_client.get_default_database()
+        
+        # 👇 FIX: "RajDev_Bot" naam hardcode kiya hai taaki 'No default database' error na aaye
+        temp_db = temp_client["RajDev_Bot"]
         
         # 3. List and Delete
         collections = await temp_db.list_collection_names()
