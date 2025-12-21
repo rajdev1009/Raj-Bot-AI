@@ -6,7 +6,7 @@
 # 🤖 Raj AI Bot - Advanced Telegram Assistant
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python)
-![Gemini](https://img.shields.io/badge/AI-Gemini%201.5-orange?style=for-the-badge&logo=google)
+![Gemini](https://img.shields.io/badge/%201.5-orange?style=for-the-badge&logo)
 ![MongoDB](https://img.shields.io/badge/DB-MongoDB-green?style=for-the-badge&logo=mongodb)
 
 A production-grade, asynchronous Telegram Bot powered by Google's Gemini AI.
@@ -14,7 +14,7 @@ Designed for 24/7 uptime with "Smart Delay" to mimic human interaction and a Hyb
 
 ## 🚀 Features
 
-* **🧠 Gemini AI Core**: Intelligent conversations using Google's Gemini 1.5 Flash.
+* **🧠 RAJ LLM MODEL**: Intelligent conversations using RAJ LLM MODEL.30.
 * **⚡ Hybrid Memory**: Falls back to JSON responses if Rate Limited (1 req/min).
 * **🗣️ Voice Intelligence**: Converts Voice Notes to Text, understands them, and replies with Audio.
 * **🎨 Image Engine**: Generates images from text and analyzes photos sent by users.
