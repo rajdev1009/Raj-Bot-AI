@@ -9,7 +9,7 @@
 ![RAJ](https://img.shields.io/badge/%20RAJ-LLM-MODEL-orange?style=for-the-badge&logo)
 ![MongoDB](https://img.shields.io/badge/DB-MongoDB-green?style=for-the-badge&logo=mongodb)
 
-A production-grade, asynchronous Telegram Bot powered by Google's Gemini AI.
+A production-grade, asynchronous Telegram Bot powered by Raj dev 
 Designed for 24/7 uptime with "Smart Delay" to mimic human interaction and a Hybrid Memory system.
 
 ## 🚀 Features
